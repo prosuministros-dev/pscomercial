@@ -20,9 +20,16 @@ import { HomeMenuNavigation } from './_components/home-menu-navigation';
 import { HomeMobileNavigation } from './_components/home-mobile-navigation';
 import { HomeSidebar } from './_components/home-sidebar';
 
+/**
+ * HomeLayout - Layout principal de PS Comercial
+ *
+ * Por defecto usa navegación superior (header) estilo Prosuministros CRM.
+ * El sidebar se mantiene como opción pero no es el default.
+ */
 function HomeLayout({ children }: React.PropsWithChildren) {
   const style = use(getLayoutStyle());
 
+  // PS Comercial: Forzar header como default
   if (style === 'sidebar') {
     return <SidebarLayout>{children}</SidebarLayout>;
   }
@@ -32,6 +39,9 @@ function HomeLayout({ children }: React.PropsWithChildren) {
 
 export default withI18n(HomeLayout);
 
+/**
+ * SidebarLayout - Layout con sidebar lateral (legacy, no default)
+ */
 function SidebarLayout({ children }: React.PropsWithChildren) {
   const sidebarMinimized = navigationConfig.sidebarCollapsed;
   const [user] = use(Promise.all([requireUserInServerComponent()]));
@@ -53,9 +63,17 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
   );
 }
 
+/**
+ * HeaderLayout - Layout con navegación superior (default PS Comercial)
+ *
+ * Características:
+ * - Navegación fija en la parte superior
+ * - Glass morphism con backdrop blur
+ * - Responsive con menú móvil
+ */
 function HeaderLayout({ children }: React.PropsWithChildren) {
   return (
-    <Page style={'header'}>
+    <Page style={'header'} sticky={true}>
       <PageNavigation>
         <HomeMenuNavigation />
       </PageNavigation>
@@ -69,16 +87,23 @@ function HeaderLayout({ children }: React.PropsWithChildren) {
   );
 }
 
+/**
+ * MobileNavigation - Wrapper para navegación móvil
+ */
 function MobileNavigation() {
   return (
     <>
       <AppLogo />
-
       <HomeMobileNavigation />
     </>
   );
 }
 
+/**
+ * getLayoutStyle - Obtiene el estilo de layout desde cookie o config
+ *
+ * PS Comercial siempre usa 'header' por defecto
+ */
 async function getLayoutStyle() {
   const cookieStore = await cookies();
 

@@ -82,14 +82,20 @@ function PageWithHeader(props: PageProps) {
     <div className={cn('flex h-screen flex-1 flex-col', props.className)}>
       <div
         className={
-          props.contentContainerClassName ?? 'flex flex-1 flex-col space-y-4'
+          props.contentContainerClassName ?? 'flex flex-1 flex-col'
         }
       >
+        {/* Header Navigation - PS Comercial Style */}
         <div
           className={cn(
-            'bg-muted/40 dark:border-border dark:shadow-primary/10 flex h-14 items-center justify-between px-4 lg:justify-start lg:shadow-xs',
+            // Glass morphism effect
+            'glass-nav border-b',
+            // Height and layout
+            'flex h-14 items-center justify-between px-4 lg:justify-start',
+            // Shadow
+            'shadow-sm dark:shadow-none',
             {
-              'sticky top-0 z-10 backdrop-blur-md': props.sticky ?? true,
+              'sticky top-0 z-50': props.sticky ?? true,
             },
           )}
         >
@@ -102,7 +108,8 @@ function PageWithHeader(props: PageProps) {
           {MobileNavigation}
         </div>
 
-        <div className={'container flex flex-1 flex-col'}>{Children}</div>
+        {/* Main Content Area */}
+        <div className={'container flex flex-1 flex-col py-4'}>{Children}</div>
       </div>
     </div>
   );

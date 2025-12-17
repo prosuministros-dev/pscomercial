@@ -1,104 +1,171 @@
 /*
 * shadcn-ui.css
 *
+* PS Comercial - Prosuministros CRM Theme
+* Paleta: Primary Cyan #00C8CF + Navy #161052
 * Update the below to customize your Shadcn UI CSS Colors.
 * Refer to https://ui.shadcn.com/themes for applying new colors.
-* NB: apply the hsl function to the colors copied from the theme.
- */
+*/
 
 @layer base {
     :root {
+        /* Typography */
         --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
         --font-heading: var(--font-sans);
 
-        --background: var(--color-white);
-        --foreground: var(--color-neutral-950);
+        /* Background */
+        --background: #ffffff;
+        --foreground: #161052;
 
-        --card: var(--color-white);
-        --card-foreground: var(--color-neutral-950);
+        /* Cards */
+        --card: #ffffff;
+        --card-foreground: #161052;
 
-        --popover: var(--color-white);
-        --popover-foreground: var(--color-neutral-950);
+        /* Popovers */
+        --popover: #ffffff;
+        --popover-foreground: #161052;
 
-        --primary: var(--color-neutral-950);
-        --primary-foreground: var(--color-white);
+        /* Primary - Cyan corporativo */
+        --primary: #00C8CF;
+        --primary-foreground: #ffffff;
 
-        --secondary: oklch(96.76% 0.0013 286.38);
-        --secondary-foreground: oklch(21.03% 0.0318 264.65);
+        /* Secondary */
+        --secondary: #f3f4f6;
+        --secondary-foreground: #161052;
 
-        --muted: oklch(96.71% 0.0029 264.54);
-        --muted-foreground: oklch(55.13% 0.0233 264.36);
+        /* Muted */
+        --muted: #f9fafb;
+        --muted-foreground: #6b7280;
 
-        --accent: oklch(96.76% 0.0013 286.38);
-        --accent-foreground: oklch(21.03% 0.0318 264.65);
+        /* Accent - Navy */
+        --accent: #161052;
+        --accent-foreground: #ffffff;
 
-        --destructive: var(--color-red-500);
-        --destructive-foreground: var(--color-white);
+        /* Destructive */
+        --destructive: #ff3b30;
+        --destructive-foreground: #ffffff;
 
-        --border: var(--color-gray-100);
-        --input: var(--color-gray-200);
-        --ring: var(--color-neutral-800);
+        /* Borders & Inputs */
+        --border: #e5e7eb;
+        --input: #e5e7eb;
+        --ring: #00C8CF;
 
-        --radius: 0.5rem;
+        /* Border Radius - 12px para estilo moderno */
+        --radius: 0.75rem;
 
-        --chart-1: var(--color-orange-400);
-        --chart-2: var(--color-teal-600);
-        --chart-3: var(--color-green-800);
-        --chart-4: var(--color-yellow-200);
-        --chart-5: var(--color-orange-200);
+        /* Charts - Paleta PS Comercial */
+        --chart-1: #00C8CF;
+        --chart-2: #161052;
+        --chart-3: #10b981;
+        --chart-4: #f59e0b;
+        --chart-5: #ef4444;
 
-        --sidebar-background: var(--color-neutral-50);
-        --sidebar-foreground: oklch(37.05% 0.012 285.8);
-        --sidebar-primary: var(--color-neutral-950);
-        --sidebar-primary-foreground: var(--color-white);
-        --sidebar-accent: var(--color-neutral-100);
-        --sidebar-accent-foreground: var(--color-neutral-950);
+        /* Sidebar/Navigation */
+        --sidebar-background: #ffffff;
+        --sidebar-foreground: #161052;
+        --sidebar-primary: #00C8CF;
+        --sidebar-primary-foreground: #ffffff;
+        --sidebar-accent: #f3f4f6;
+        --sidebar-accent-foreground: #161052;
         --sidebar-border: var(--border);
-        --sidebar-ring: var(--color-blue-500);
+        --sidebar-ring: #00C8CF;
+
+        /* Estados de Lead */
+        --lead-pendiente: #f59e0b;
+        --lead-en-gestion: #3b82f6;
+        --lead-convertido: #10b981;
+        --lead-descartado: #6b7280;
+
+        /* Estados de Cotizacion */
+        --cotizacion-borrador: #6b7280;
+        --cotizacion-enviada: #3b82f6;
+        --cotizacion-aprobada: #10b981;
+        --cotizacion-rechazada: #ef4444;
+        --cotizacion-vencida: #f59e0b;
+
+        /* Success/Warning/Info */
+        --success: #10b981;
+        --success-foreground: #ffffff;
+        --warning: #f59e0b;
+        --warning-foreground: #ffffff;
+        --info: #3b82f6;
+        --info-foreground: #ffffff;
     }
 
     .dark {
-        --background: var(--color-neutral-900);
-        --foreground: var(--color-white);
+        /* Background - Navy oscuro */
+        --background: #0f0f23;
+        --foreground: #f9fafb;
 
-        --card: var(--color-neutral-900);
-        --card-foreground: var(--color-white);
+        /* Cards */
+        --card: #1a1a3e;
+        --card-foreground: #f9fafb;
 
-        --popover: var(--color-neutral-900);
-        --popover-foreground: var(--color-white);
+        /* Popovers */
+        --popover: #1a1a3e;
+        --popover-foreground: #f9fafb;
 
-        --primary: var(--color-white);
-        --primary-foreground: var(--color-neutral-900);
+        /* Primary - Cyan (mantiene identidad) */
+        --primary: #00C8CF;
+        --primary-foreground: #0f0f23;
 
-        --secondary: var(--color-neutral-800);
-        --secondary-foreground: oklch(98.43% 0.0017 247.84);
+        /* Secondary */
+        --secondary: #2a2a5e;
+        --secondary-foreground: #f9fafb;
 
-        --muted: var(--color-neutral-800);
-        --muted-foreground: oklch(71.19% 0.0129 286.07);
+        /* Muted */
+        --muted: #1f1f4a;
+        --muted-foreground: #9ca3af;
 
-        --accent: var(--color-neutral-800);
-        --accent-foreground: oklch(98.48% 0 0);
+        /* Accent - Cyan en dark mode */
+        --accent: #00C8CF;
+        --accent-foreground: #0f0f23;
 
-        --destructive: var(--color-red-700);
-        --destructive-foreground: var(--color-white);
+        /* Destructive */
+        --destructive: #ff453a;
+        --destructive-foreground: #ffffff;
 
-        --border: var(--color-neutral-800);
-        --input: var(--color-neutral-700);
-        --ring: oklch(87.09% 0.0055 286.29);
+        /* Borders & Inputs */
+        --border: #2a2a5e;
+        --input: #2a2a5e;
+        --ring: #00C8CF;
 
-        --chart-1: var(--color-blue-600);
-        --chart-2: var(--color-emerald-400);
-        --chart-3: var(--color-orange-400);
-        --chart-4: var(--color-purple-500);
-        --chart-5: var(--color-pink-500);
+        /* Charts - Ajustados para dark mode */
+        --chart-1: #00d4db;
+        --chart-2: #8b5cf6;
+        --chart-3: #34d399;
+        --chart-4: #fbbf24;
+        --chart-5: #f87171;
 
-        --sidebar-background: var(--color-neutral-900);
-        --sidebar-foreground: var(--color-white);
-        --sidebar-primary: var(--color-blue-500);
-        --sidebar-primary-foreground: var(--color-white);
-        --sidebar-accent: var(--color-neutral-800);
-        --sidebar-accent-foreground: var(--color-white);
+        /* Sidebar/Navigation */
+        --sidebar-background: #0f0f23;
+        --sidebar-foreground: #f9fafb;
+        --sidebar-primary: #00C8CF;
+        --sidebar-primary-foreground: #0f0f23;
+        --sidebar-accent: #1f1f4a;
+        --sidebar-accent-foreground: #f9fafb;
         --sidebar-border: var(--border);
-        --sidebar-ring: var(--color-blue-500);
+        --sidebar-ring: #00C8CF;
+
+        /* Estados de Lead - Ajustados para dark */
+        --lead-pendiente: #fbbf24;
+        --lead-en-gestion: #60a5fa;
+        --lead-convertido: #34d399;
+        --lead-descartado: #9ca3af;
+
+        /* Estados de Cotizacion - Ajustados para dark */
+        --cotizacion-borrador: #9ca3af;
+        --cotizacion-enviada: #60a5fa;
+        --cotizacion-aprobada: #34d399;
+        --cotizacion-rechazada: #f87171;
+        --cotizacion-vencida: #fbbf24;
+
+        /* Success/Warning/Info */
+        --success: #34d399;
+        --success-foreground: #0f0f23;
+        --warning: #fbbf24;
+        --warning-foreground: #0f0f23;
+        --info: #60a5fa;
+        --info-foreground: #0f0f23;
     }
 }

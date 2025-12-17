@@ -1,9 +1,9 @@
 /*
 * theme.css
 *
-* Shadcn UI theme
-* Use this file to add any custom styles or override existing Shadcn UI styles
- */
+* PS Comercial - Prosuministros CRM Theme
+* Gradientes, Glass Morphism y Utilidades Personalizadas
+*/
 
 /* container utility */
 
@@ -43,11 +43,31 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
+  /* Estados de negocio como colores de Tailwind */
+  --color-lead-pendiente: var(--lead-pendiente);
+  --color-lead-en-gestion: var(--lead-en-gestion);
+  --color-lead-convertido: var(--lead-convertido);
+  --color-lead-descartado: var(--lead-descartado);
+
+  --color-cotizacion-borrador: var(--cotizacion-borrador);
+  --color-cotizacion-enviada: var(--cotizacion-enviada);
+  --color-cotizacion-aprobada: var(--cotizacion-aprobada);
+  --color-cotizacion-rechazada: var(--cotizacion-rechazada);
+  --color-cotizacion-vencida: var(--cotizacion-vencida);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
   --radius-radius: var(--radius);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 
   --font-sans: -apple-system, var(--font-sans);
   --font-heading: var(--font-heading);
@@ -61,10 +81,17 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
+  /* Animaciones existentes */
   --animate-fade-up: fade-up 0.5s;
   --animate-fade-down: fade-down 0.5s;
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  /* Nuevas animaciones PS Comercial */
+  --animate-slide-in-right: slide-in-right 0.3s ease-out;
+  --animate-slide-out-right: slide-out-right 0.3s ease-out;
+  --animate-scale-in: scale-in 0.2s ease-out;
+  --animate-pulse-soft: pulse-soft 2s ease-in-out infinite;
 
   @keyframes accordion-down {
     from {
@@ -112,5 +139,288 @@
       opacity: 1;
       transform: translateY(0px);
     }
+  }
+
+  @keyframes slide-in-right {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-out-right {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+
+  @keyframes scale-in {
+    from {
+      transform: scale(0.95);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes pulse-soft {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+}
+
+/* =============================================================================
+   GRADIENTES PS COMERCIAL
+   ============================================================================= */
+
+@layer utilities {
+  /* Gradiente principal de marca */
+  .gradient-brand {
+    background: linear-gradient(135deg, #00C8CF 0%, #161052 100%);
+  }
+
+  /* Gradiente invertido */
+  .gradient-brand-reverse {
+    background: linear-gradient(135deg, #161052 0%, #00C8CF 100%);
+  }
+
+  /* Gradiente horizontal */
+  .gradient-brand-horizontal {
+    background: linear-gradient(90deg, #00C8CF 0%, #161052 100%);
+  }
+
+  /* Gradiente para texto */
+  .gradient-text-brand {
+    background: linear-gradient(135deg, #00C8CF 0%, #161052 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Gradiente suave para cards */
+  .gradient-card {
+    background: linear-gradient(180deg, rgba(0, 200, 207, 0.05) 0%, rgba(22, 16, 82, 0.05) 100%);
+  }
+
+  .dark .gradient-card {
+    background: linear-gradient(180deg, rgba(0, 200, 207, 0.1) 0%, rgba(22, 16, 82, 0.2) 100%);
+  }
+
+  /* Gradiente para bordes */
+  .gradient-border {
+    position: relative;
+  }
+
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    background: linear-gradient(135deg, #00C8CF 0%, #161052 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+}
+
+/* =============================================================================
+   GLASS MORPHISM
+   ============================================================================= */
+
+@layer utilities {
+  /* Glass effect base */
+  .glass {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .dark .glass {
+    background: rgba(15, 15, 35, 0.8);
+  }
+
+  /* Glass más transparente */
+  .glass-light {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .dark .glass-light {
+    background: rgba(15, 15, 35, 0.6);
+  }
+
+  /* Glass con borde */
+  .glass-border {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .dark .glass-border {
+    background: rgba(15, 15, 35, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Glass para navegacion */
+  .glass-nav {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  .dark .glass-nav {
+    background: rgba(15, 15, 35, 0.9);
+  }
+}
+
+/* =============================================================================
+   SOMBRAS PERSONALIZADAS
+   ============================================================================= */
+
+@layer utilities {
+  /* Sombra suave para cards */
+  .shadow-card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Sombra elevada */
+  .shadow-elevated {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Sombra con color primario */
+  .shadow-primary {
+    box-shadow: 0 4px 14px rgba(0, 200, 207, 0.25);
+  }
+
+  /* Sombra con color accent */
+  .shadow-accent {
+    box-shadow: 0 4px 14px rgba(22, 16, 82, 0.25);
+  }
+}
+
+/* =============================================================================
+   ESTADOS DE NEGOCIO - BADGES
+   ============================================================================= */
+
+@layer utilities {
+  /* Lead badges */
+  .badge-lead-pendiente {
+    background-color: var(--lead-pendiente);
+    color: white;
+  }
+
+  .badge-lead-en-gestion {
+    background-color: var(--lead-en-gestion);
+    color: white;
+  }
+
+  .badge-lead-convertido {
+    background-color: var(--lead-convertido);
+    color: white;
+  }
+
+  .badge-lead-descartado {
+    background-color: var(--lead-descartado);
+    color: white;
+  }
+
+  /* Cotizacion badges */
+  .badge-cotizacion-borrador {
+    background-color: var(--cotizacion-borrador);
+    color: white;
+  }
+
+  .badge-cotizacion-enviada {
+    background-color: var(--cotizacion-enviada);
+    color: white;
+  }
+
+  .badge-cotizacion-aprobada {
+    background-color: var(--cotizacion-aprobada);
+    color: white;
+  }
+
+  .badge-cotizacion-rechazada {
+    background-color: var(--cotizacion-rechazada);
+    color: white;
+  }
+
+  .badge-cotizacion-vencida {
+    background-color: var(--cotizacion-vencida);
+    color: white;
+  }
+}
+
+/* =============================================================================
+   UTILIDADES ADICIONALES
+   ============================================================================= */
+
+@layer utilities {
+  /* Hover con gradient */
+  .hover-gradient:hover {
+    background: linear-gradient(135deg, rgba(0, 200, 207, 0.1) 0%, rgba(22, 16, 82, 0.1) 100%);
+  }
+
+  /* Focus ring con color primario */
+  .focus-ring-primary:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--background), 0 0 0 4px #00C8CF;
+  }
+
+  /* Transicion suave para todos los elementos interactivos */
+  .transition-interactive {
+    transition: all 0.2s ease-in-out;
+  }
+
+  /* Texto con truncate y tooltip */
+  .text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Scrollbar personalizado */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: var(--muted-foreground);
   }
 }
