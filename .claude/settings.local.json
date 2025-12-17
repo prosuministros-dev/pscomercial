@@ -13,20 +13,34 @@
       "Glob",
       "Grep",
       "mcp__supabase__*",
-      "mcp__playwright__*"
+      "mcp__playwright__*",
+      "Bash(pnpm typecheck:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(cat:*)",
+      "Bash(pnpm add:*)",
+      "Bash(cd:*)",
+      "Bash(timeout 30 pnpm dev:*)",
+      "Bash(git pull:*)",
+      "Bash(git reset:*)"
     ]
   },
   "mcpServers": {
     "supabase": {
       "command": "npx",
-      "args": ["-y", "@anthropic-ai/mcp-supabase"],
+      "args": [
+        "-y",
+        "@anthropic-ai/mcp-supabase"
+      ],
       "env": {
         "SUPABASE_ACCESS_TOKEN": "PENDIENTE_OBTENER_DE_SUPABASE_DASHBOARD"
       }
     },
     "playwright": {
       "command": "npx",
-      "args": ["-y", "@anthropic-ai/mcp-playwright"]
+      "args": [
+        "-y",
+        "@anthropic-ai/mcp-playwright"
+      ]
     }
   }
 }
