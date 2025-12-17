@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -15,8 +16,10 @@ import {
 } from '@kit/ui/tooltip';
 
 import { AppLogo } from '~/components/app-logo';
+import { NotificacionesPanel } from '~/components/notificaciones-panel';
 import { ProfileAccountDropdownContainer } from '~/components/personal-account-dropdown-container';
 import { navigationConfig } from '~/config/navigation.config';
+import { notificacionesExtendidas } from '~/lib/mock-data';
 
 /**
  * TopNavigation - Navegación superior estilo Prosuministros CRM
@@ -25,6 +28,8 @@ import { navigationConfig } from '~/config/navigation.config';
  * [Logo] [Nav Items centrados] [Notificaciones] [Usuario]
  */
 export function TopNavigation() {
+  const [notificacionesOpen, setNotificacionesOpen] = useState(false);
+
   // Extraer rutas planas de la configuración
   const routes = navigationConfig.routes.reduce<
     Array<{
@@ -79,7 +84,16 @@ export function TopNavigation() {
       {/* Acciones - Derecha */}
       <div className="flex items-center space-x-2">
         {/* Botón de Notificaciones */}
-        <NotificationsButton />
+        <NotificationsButton
+          unreadCount={notificacionesExtendidas.filter((n) => !n.leida).length}
+          onClick={() => setNotificacionesOpen(true)}
+        />
+
+        {/* Panel de Notificaciones */}
+        <NotificacionesPanel
+          open={notificacionesOpen}
+          onOpenChange={setNotificacionesOpen}
+        />
 
         {/* Settings/Admin (visible solo en desktop) */}
         <div className="hidden items-center space-x-1 lg:flex">
@@ -175,10 +189,12 @@ function NavItem({ path, label, icon, end, compact }: NavItemProps) {
 /**
  * NotificationsButton - Botón de notificaciones con badge
  */
-function NotificationsButton() {
-  // TODO: Conectar con sistema de notificaciones real
-  const unreadCount = 0;
+interface NotificationsButtonProps {
+  unreadCount: number;
+  onClick: () => void;
+}
 
+function NotificationsButton({ unreadCount, onClick }: NotificationsButtonProps) {
   return (
     <TooltipProvider delayDuration={0}>
       <Tooltip>
@@ -186,6 +202,7 @@ function NotificationsButton() {
           <Button
             variant="ghost"
             size="icon"
+            onClick={onClick}
             className="relative h-9 w-9 text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <Bell className="h-5 w-5" />
