@@ -1,12 +1,32 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git clone:*)",
-      "Bash(pnpm install)",
-      "Bash(pnpm dev)",
-      "Bash(git add:*)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Initialize Next.js SaaS Starter Kit with Supabase integration\n\nClone MakerKit''s nextjs-saas-starter-kit-lite and configure Supabase\ncredentials for PS Comercial project.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git push:*)"
+      "Bash(git *)",
+      "Bash(pnpm *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(pip *)",
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "mcp__supabase__*",
+      "mcp__playwright__*"
     ]
+  },
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": ["-y", "@anthropic-ai/mcp-supabase"],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "PENDIENTE_OBTENER_DE_SUPABASE_DASHBOARD"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@anthropic-ai/mcp-playwright"]
+    }
   }
 }

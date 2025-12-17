@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(///**)",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__list_migrations",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__list_projects",
+      "mcp__supabase__get_project",
+      "mcp__supabase__get_logs",
+      "mcp__supabase__get_advisors",
+      "mcp__supabase__generate_typescript_types",
+      "mcp__supabase__get_project_url",
+      "mcp__supabase__get_publishable_keys"
+    ],
+    "deny": [
+      "mcp__supabase__apply_migration"
+    ],
+    "ask": []
+  },
+  "outputStyle": "default",
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-supabase@latest"
+      ],
+      "env": {
+        "SUPABASE_URL": "https://wxghopuefrdszebgrclv.supabase.co",
+        "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4Z2hvcHVlZnJkc3plYmdyY2x2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MzA2NjUxNywiZXhwIjoyMDc4NjQyNTE3fQ.c6AFvw-Cd5T_CnVFBtFo5xJ7jlMVPJSumWuQKMZxwik",
+        "SUPABASE_ACCESS_TOKEN": "sbp_d2983fc9d872c6654ab7126189eeccd51e8fe679"
+      }
+    }
+  }
+}
