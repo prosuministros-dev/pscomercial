@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import { MoreVertical, Plus, Search } from 'lucide-react';
+import { MoreVertical, Plus, Search, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Badge } from '@kit/ui/badge';
@@ -16,30 +16,38 @@ import {
 } from '@kit/ui/dropdown-menu';
 import { Input } from '@kit/ui/input';
 
-import { leads, type Lead } from '~/lib/mock-data';
+import { useConvertLead, useRejectLead, useLeads } from '~/lib/leads';
+
+// Tipo del lead desde la base de datos (reutiliza el tipo del hook)
+type LeadDB = NonNullable<ReturnType<typeof useLeads>['data']>[number];
 
 interface LeadsKanbanProps {
-  onVerDetalle: (lead: Lead) => void;
+  leads: LeadDB[];
+  onVerDetalle: (lead: LeadDB) => void;
   onCrear: () => void;
+  onReasignar?: (lead: LeadDB) => void;
 }
 
-export function LeadsKanban({ onVerDetalle, onCrear }: LeadsKanbanProps) {
+export function LeadsKanban({ leads, onVerDetalle, onCrear, onReasignar }: LeadsKanbanProps) {
   const [busqueda, setBusqueda] = useState('');
   const [arrastrando, setArrastrando] = useState<string | null>(null);
 
+  const convertLead = useConvertLead();
+  const rejectLead = useRejectLead();
+
   const columnas = [
-    { id: 'pendiente', titulo: 'Pendiente', color: 'border-yellow-500' },
-    { id: 'en_gestion', titulo: 'En Gestión', color: 'border-blue-500' },
-    { id: 'convertido', titulo: 'Convertido', color: 'border-green-500' },
-    { id: 'descartado', titulo: 'Descartado', color: 'border-gray-500' },
+    { id: 'PENDIENTE_ASIGNACION', titulo: 'Pendiente', color: 'border-yellow-500' },
+    { id: 'ASIGNADO', titulo: 'Asignado', color: 'border-blue-500' },
+    { id: 'CONVERTIDO', titulo: 'Convertido', color: 'border-green-500' },
+    { id: 'RECHAZADO', titulo: 'Rechazado', color: 'border-gray-500' },
   ];
 
   const leadsFiltrados = leads.filter((lead) => {
     const matchBusqueda =
       busqueda === '' ||
       lead.numero.toString().includes(busqueda) ||
-      lead.razonSocial.toLowerCase().includes(busqueda.toLowerCase()) ||
-      lead.nombreContacto.toLowerCase().includes(busqueda.toLowerCase());
+      lead.razon_social.toLowerCase().includes(busqueda.toLowerCase()) ||
+      lead.nombre_contacto.toLowerCase().includes(busqueda.toLowerCase());
     return matchBusqueda;
   });
 
@@ -58,7 +66,8 @@ export function LeadsKanban({ onVerDetalle, onCrear }: LeadsKanbanProps) {
     if (arrastrando) {
       const lead = leads.find((l) => l.id === arrastrando);
       if (lead) {
-        toast.success(`Lead #${lead.numero} movido a ${nuevoEstado}`);
+        // TODO: Implementar cambio de estado via mutation
+        toast.info(`Funcionalidad de arrastrar próximamente`);
       }
       setArrastrando(null);
     }
@@ -68,12 +77,40 @@ export function LeadsKanban({ onVerDetalle, onCrear }: LeadsKanbanProps) {
     setArrastrando(null);
   };
 
-  const handleConvertir = (lead: Lead) => {
-    toast.success(`Lead #${lead.numero} convertido a cotización`);
+  const handleConvertir = (lead: LeadDB) => {
+    convertLead.mutate(
+      { lead_id: lead.id },
+      {
+        onSuccess: () => {
+          toast.success(`Lead #${lead.numero} convertido a cotización`);
+        },
+        onError: (error) => {
+          toast.error(`Error: ${error.message}`);
+        },
+      }
+    );
   };
 
-  const handleDescartar = (lead: Lead) => {
-    toast.info(`Lead #${lead.numero} descartado`);
+  const handleRechazar = (lead: LeadDB) => {
+    rejectLead.mutate(
+      { lead_id: lead.id, motivo_rechazo: 'Rechazado desde kanban' },
+      {
+        onSuccess: () => {
+          toast.success(`Lead #${lead.numero} rechazado`);
+        },
+        onError: (error) => {
+          toast.error(`Error: ${error.message}`);
+        },
+      }
+    );
+  };
+
+  // Calcular si supera 24h
+  const supera24h = (fechaCreacion: string) => {
+    const ahora = new Date();
+    const creacion = new Date(fechaCreacion);
+    const diff = ahora.getTime() - creacion.getTime();
+    return diff > 24 * 60 * 60 * 1000;
   };
 
   return (
@@ -170,7 +207,7 @@ export function LeadsKanban({ onVerDetalle, onCrear }: LeadsKanbanProps) {
                             >
                               Ver detalles
                             </DropdownMenuItem>
-                            {lead.estado === 'en_gestion' && (
+                            {lead.estado === 'ASIGNADO' && (
                               <DropdownMenuItem
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -180,14 +217,25 @@ export function LeadsKanban({ onVerDetalle, onCrear }: LeadsKanbanProps) {
                                 Convertir a cotización
                               </DropdownMenuItem>
                             )}
-                            {lead.estado !== 'descartado' && (
+                            {lead.estado !== 'RECHAZADO' && lead.estado !== 'CONVERTIDO' && onReasignar && (
                               <DropdownMenuItem
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleDescartar(lead);
+                                  onReasignar(lead);
                                 }}
                               >
-                                Descartar
+                                <UserPlus className="mr-2 h-3.5 w-3.5" />
+                                Reasignar
+                              </DropdownMenuItem>
+                            )}
+                            {lead.estado !== 'RECHAZADO' && lead.estado !== 'CONVERTIDO' && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRechazar(lead);
+                                }}
+                              >
+                                Rechazar
                               </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
@@ -196,11 +244,11 @@ export function LeadsKanban({ onVerDetalle, onCrear }: LeadsKanbanProps) {
 
                       {/* Razón social compacta */}
                       <h4 className="mb-2 line-clamp-2 text-sm font-medium leading-tight">
-                        {lead.razonSocial}
+                        {lead.razon_social}
                       </h4>
 
                       {/* Alerta si aplica */}
-                      {lead.alerta24h && (
+                      {supera24h(lead.creado_en) && lead.estado !== 'CONVERTIDO' && lead.estado !== 'RECHAZADO' && (
                         <div className="mb-2 flex items-center gap-1 text-[10px] text-yellow-600 dark:text-yellow-500">
                           <div className="h-1.5 w-1.5 rounded-full bg-yellow-600 dark:bg-yellow-500" />
                           <span>Requiere atención</span>
@@ -210,16 +258,18 @@ export function LeadsKanban({ onVerDetalle, onCrear }: LeadsKanbanProps) {
                       {/* Footer */}
                       <div className="flex items-center justify-between">
                         <span className="text-[9px] text-muted-foreground/60">
-                          {new Date(lead.creadoEn).toLocaleDateString('es-CO', {
+                          {new Date(lead.creado_en).toLocaleDateString('es-CO', {
                             day: 'numeric',
                             month: 'short',
                           })}
                         </span>
                         <div className="gradient-accent flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-semibold text-white">
-                          {lead.asignadoA
-                            .split(' ')
-                            .map((n) => n[0])
-                            .join('')}
+                          {(lead as any).asesor?.nombre
+                            ? (lead as any).asesor.nombre
+                                .split(' ')
+                                .map((n: string) => n[0])
+                                .join('')
+                            : '?'}
                         </div>
                       </div>
                     </Card>

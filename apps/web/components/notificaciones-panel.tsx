@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Sheet, SheetContent } from '@kit/ui/sheet';
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@kit/ui/sheet';
 import { Button } from '@kit/ui/button';
 import { Input } from '@kit/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@kit/ui/avatar';
@@ -272,6 +272,11 @@ export function NotificacionesPanel({
         side="right"
         className="flex w-full flex-col p-0 sm:w-[380px] sm:max-w-[380px]"
       >
+        <SheetTitle className="sr-only">Notificaciones</SheetTitle>
+        <SheetDescription className="sr-only">
+          Panel de notificaciones del sistema
+        </SheetDescription>
+
         {/* Header ultra-compacto */}
         <div className="flex-shrink-0 border-b border-border/50 px-4 py-3">
           <div className="mb-2.5 flex items-center justify-between">

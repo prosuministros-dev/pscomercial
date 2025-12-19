@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import { Megaphone, Save, X } from 'lucide-react';
+import { Loader2, Megaphone, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@kit/ui/button';
@@ -24,31 +24,31 @@ import {
 } from '@kit/ui/select';
 import { Textarea } from '@kit/ui/textarea';
 
-import { usuarios, type Lead } from '~/lib/mock-data';
+import { useCreateLead, type CreateLeadInput } from '~/lib/leads';
 
 interface CrearLeadModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: (lead: Partial<Lead>) => void;
 }
 
 export function CrearLeadModal({
   open,
   onOpenChange,
-  onCreated,
 }: CrearLeadModalProps) {
   const [formData, setFormData] = useState({
-    razonSocial: '',
+    razon_social: '',
     nit: '',
-    nombreContacto: '',
-    email: '',
-    telefono: '',
-    origen: 'Web',
+    nombre_contacto: '',
+    email_contacto: '',
+    celular_contacto: '',
+    canal_origen: 'MANUAL' as const,
     requerimiento: '',
-    asignadoA: 'Ana García',
+    fecha_lead: new Date().toISOString().split('T')[0],
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const createLead = useCreateLead();
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -60,22 +60,22 @@ export function CrearLeadModal({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.razonSocial.trim()) {
-      newErrors.razonSocial = 'La razón social es obligatoria';
+    if (!formData.razon_social.trim()) {
+      newErrors.razon_social = 'La razón social es obligatoria';
     }
     if (!formData.nit.trim()) {
       newErrors.nit = 'El NIT es obligatorio';
     }
-    if (!formData.nombreContacto.trim()) {
-      newErrors.nombreContacto = 'El nombre del contacto es obligatorio';
+    if (!formData.nombre_contacto.trim()) {
+      newErrors.nombre_contacto = 'El nombre del contacto es obligatorio';
     }
-    if (!formData.email.trim()) {
-      newErrors.email = 'El email es obligatorio';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'El email no es válido';
+    if (!formData.email_contacto.trim()) {
+      newErrors.email_contacto = 'El email es obligatorio';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email_contacto)) {
+      newErrors.email_contacto = 'El email no es válido';
     }
-    if (!formData.telefono.trim()) {
-      newErrors.telefono = 'El teléfono es obligatorio';
+    if (!formData.celular_contacto.trim()) {
+      newErrors.celular_contacto = 'El teléfono es obligatorio';
     }
     if (!formData.requerimiento.trim()) {
       newErrors.requerimiento = 'El requerimiento es obligatorio';
@@ -91,32 +91,39 @@ export function CrearLeadModal({
       return;
     }
 
-    const nuevoLead: Partial<Lead> = {
-      id: Date.now().toString(),
-      numero: 105, // En producción sería auto-incrementado
-      ...formData,
-      origen: formData.origen as Lead['origen'],
-      fechaLead: new Date().toISOString(),
-      estado: 'pendiente',
-      alerta24h: false,
-      creadoPor: 'Usuario Actual',
-      creadoEn: new Date().toISOString(),
+    const leadData: CreateLeadInput = {
+      razon_social: formData.razon_social,
+      nit: formData.nit,
+      nombre_contacto: formData.nombre_contacto,
+      celular_contacto: formData.celular_contacto,
+      email_contacto: formData.email_contacto,
+      requerimiento: formData.requerimiento,
+      canal_origen: formData.canal_origen,
+      fecha_lead: formData.fecha_lead,
     };
 
-    onCreated(nuevoLead);
-    toast.success(`Lead #${nuevoLead.numero} creado exitosamente`);
-    onOpenChange(false);
+    createLead.mutate(leadData, {
+      onSuccess: (result) => {
+        toast.success(`Lead creado exitosamente`);
+        onOpenChange(false);
+        resetForm();
+      },
+      onError: (error) => {
+        toast.error(`Error al crear lead: ${error.message}`);
+      },
+    });
+  };
 
-    // Reset form
+  const resetForm = () => {
     setFormData({
-      razonSocial: '',
+      razon_social: '',
       nit: '',
-      nombreContacto: '',
-      email: '',
-      telefono: '',
-      origen: 'Web',
+      nombre_contacto: '',
+      email_contacto: '',
+      celular_contacto: '',
+      canal_origen: 'MANUAL',
       requerimiento: '',
-      asignadoA: 'Ana García',
+      fecha_lead: new Date().toISOString().split('T')[0],
     });
     setErrors({});
   };
@@ -160,21 +167,21 @@ export function CrearLeadModal({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <Label htmlFor="razonSocial" className="text-xs">
+                  <Label htmlFor="razon_social" className="text-xs">
                     Razón Social <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    id="razonSocial"
-                    value={formData.razonSocial}
+                    id="razon_social"
+                    value={formData.razon_social}
                     onChange={(e) =>
-                      handleChange('razonSocial', e.target.value)
+                      handleChange('razon_social', e.target.value)
                     }
                     placeholder="Ej: TechCorp S.A.S"
-                    className={`mt-1 h-9 text-sm ${errors.razonSocial ? 'border-red-500' : ''}`}
+                    className={`mt-1 h-9 text-sm ${errors.razon_social ? 'border-red-500' : ''}`}
                   />
-                  {errors.razonSocial && (
+                  {errors.razon_social && (
                     <p className="mt-1 text-xs text-red-500">
-                      {errors.razonSocial}
+                      {errors.razon_social}
                     </p>
                   )}
                 </div>
@@ -196,24 +203,35 @@ export function CrearLeadModal({
                 </div>
 
                 <div>
-                  <Label htmlFor="origen" className="text-xs">
-                    Fuente del Lead
+                  <Label htmlFor="canal_origen" className="text-xs">
+                    Canal de Entrada
                   </Label>
                   <Select
-                    value={formData.origen}
-                    onValueChange={(value) => handleChange('origen', value)}
+                    value={formData.canal_origen}
+                    onValueChange={(value) => handleChange('canal_origen', value)}
                   >
                     <SelectTrigger className="mt-1 h-9 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Web">Web</SelectItem>
-                      <SelectItem value="WhatsApp">WhatsApp</SelectItem>
-                      <SelectItem value="Email">Email</SelectItem>
-                      <SelectItem value="Teléfono">Teléfono</SelectItem>
-                      <SelectItem value="Manual">Manual</SelectItem>
+                      <SelectItem value="MANUAL">Manual</SelectItem>
+                      <SelectItem value="WHATSAPP">WhatsApp</SelectItem>
+                      <SelectItem value="WEB">Web</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="fecha_lead" className="text-xs">
+                    Fecha del Lead
+                  </Label>
+                  <Input
+                    id="fecha_lead"
+                    type="date"
+                    value={formData.fecha_lead}
+                    onChange={(e) => handleChange('fecha_lead', e.target.value)}
+                    className="mt-1 h-9 text-sm"
+                  />
                 </div>
               </div>
             </div>
@@ -224,56 +242,56 @@ export function CrearLeadModal({
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <Label htmlFor="nombreContacto" className="text-xs">
+                  <Label htmlFor="nombre_contacto" className="text-xs">
                     Nombre del Contacto <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    id="nombreContacto"
-                    value={formData.nombreContacto}
+                    id="nombre_contacto"
+                    value={formData.nombre_contacto}
                     onChange={(e) =>
-                      handleChange('nombreContacto', e.target.value)
+                      handleChange('nombre_contacto', e.target.value)
                     }
                     placeholder="Ej: Pedro Martínez"
-                    className={`mt-1 h-9 text-sm ${errors.nombreContacto ? 'border-red-500' : ''}`}
+                    className={`mt-1 h-9 text-sm ${errors.nombre_contacto ? 'border-red-500' : ''}`}
                   />
-                  {errors.nombreContacto && (
+                  {errors.nombre_contacto && (
                     <p className="mt-1 text-xs text-red-500">
-                      {errors.nombreContacto}
+                      {errors.nombre_contacto}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <Label htmlFor="email" className="text-xs">
+                  <Label htmlFor="email_contacto" className="text-xs">
                     Email <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    id="email"
+                    id="email_contacto"
                     type="email"
-                    value={formData.email}
-                    onChange={(e) => handleChange('email', e.target.value)}
+                    value={formData.email_contacto}
+                    onChange={(e) => handleChange('email_contacto', e.target.value)}
                     placeholder="correo@ejemplo.com"
-                    className={`mt-1 h-9 text-sm ${errors.email ? 'border-red-500' : ''}`}
+                    className={`mt-1 h-9 text-sm ${errors.email_contacto ? 'border-red-500' : ''}`}
                   />
-                  {errors.email && (
-                    <p className="mt-1 text-xs text-red-500">{errors.email}</p>
+                  {errors.email_contacto && (
+                    <p className="mt-1 text-xs text-red-500">{errors.email_contacto}</p>
                   )}
                 </div>
 
                 <div>
-                  <Label htmlFor="telefono" className="text-xs">
+                  <Label htmlFor="celular_contacto" className="text-xs">
                     Teléfono <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    id="telefono"
-                    value={formData.telefono}
-                    onChange={(e) => handleChange('telefono', e.target.value)}
+                    id="celular_contacto"
+                    value={formData.celular_contacto}
+                    onChange={(e) => handleChange('celular_contacto', e.target.value)}
                     placeholder="+57 310 555 0100"
-                    className={`mt-1 h-9 text-sm ${errors.telefono ? 'border-red-500' : ''}`}
+                    className={`mt-1 h-9 text-sm ${errors.celular_contacto ? 'border-red-500' : ''}`}
                   />
-                  {errors.telefono && (
+                  {errors.celular_contacto && (
                     <p className="mt-1 text-xs text-red-500">
-                      {errors.telefono}
+                      {errors.celular_contacto}
                     </p>
                   )}
                 </div>
@@ -307,35 +325,6 @@ export function CrearLeadModal({
               </div>
             </div>
 
-            {/* Asignación */}
-            <div className="space-y-3">
-              <h4 className="text-sm">Asignación</h4>
-
-              <div>
-                <Label htmlFor="asignadoA" className="text-xs">
-                  Asesor Comercial
-                </Label>
-                <Select
-                  value={formData.asignadoA}
-                  onValueChange={(value) => handleChange('asignadoA', value)}
-                >
-                  <SelectTrigger className="mt-1 h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {usuarios
-                      .filter(
-                        (u) => u.rol === 'Comercial' || u.rol === 'Gerencia',
-                      )
-                      .map((usuario) => (
-                        <SelectItem key={usuario.id} value={usuario.nombre}>
-                          {usuario.nombre}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -349,6 +338,7 @@ export function CrearLeadModal({
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
+              disabled={createLead.isPending}
             >
               Cancelar
             </Button>
@@ -356,9 +346,14 @@ export function CrearLeadModal({
               size="sm"
               onClick={handleSubmit}
               className="gradient-brand gap-2"
+              disabled={createLead.isPending}
             >
-              <Save className="h-3.5 w-3.5" />
-              Crear Lead
+              {createLead.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
+              {createLead.isPending ? 'Creando...' : 'Crear Lead'}
             </Button>
           </div>
         </div>

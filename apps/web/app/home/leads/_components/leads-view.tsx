@@ -10,10 +10,12 @@ import {
   FileText,
   LayoutGrid,
   List,
+  Loader2,
   Megaphone,
   MoreHorizontal,
   Plus,
   Search,
+  UserPlus,
   XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -36,13 +38,23 @@ import {
   SelectValue,
 } from '@kit/ui/select';
 
-import { leads, type Lead } from '~/lib/mock-data';
+import {
+  useLeads,
+  useLeadStats,
+  useConvertLead,
+  useRejectLead,
+  type LeadEstado,
+} from '~/lib/leads';
 
 import { CrearLeadModal } from './crear-lead-modal';
 import { LeadsKanban } from './leads-kanban';
+import { ReasignarLeadModal } from './reasignar-lead-modal';
 import { VerLeadModal } from './ver-lead-modal';
 
 type VistaType = 'tabla' | 'kanban';
+
+// Tipo para el lead de la base de datos
+type LeadDB = NonNullable<ReturnType<typeof useLeads>['data']>[number];
 
 export function LeadsView() {
   const [vista, setVista] = useState<VistaType>('tabla');
@@ -50,48 +62,55 @@ export function LeadsView() {
   const [busqueda, setBusqueda] = useState('');
   const [modalCrear, setModalCrear] = useState(false);
   const [modalVer, setModalVer] = useState(false);
-  const [leadSeleccionado, setLeadSeleccionado] = useState<Lead | null>(null);
+  const [modalReasignar, setModalReasignar] = useState(false);
+  const [leadSeleccionado, setLeadSeleccionado] = useState<LeadDB | null>(null);
 
-  const leadsFiltrados = leads.filter((lead) => {
-    const matchEstado =
-      filtroEstado === 'todos' || lead.estado === filtroEstado;
-    const matchBusqueda =
-      busqueda === '' ||
-      lead.razonSocial.toLowerCase().includes(busqueda.toLowerCase()) ||
-      lead.nombreContacto.toLowerCase().includes(busqueda.toLowerCase()) ||
-      lead.numero.toString().includes(busqueda);
-    return matchEstado && matchBusqueda;
+  // Queries
+  const { data: leads = [], isLoading, error } = useLeads({
+    estado: filtroEstado !== 'todos' ? (filtroEstado as LeadEstado) : undefined,
+    busqueda: busqueda || undefined,
   });
 
+  const { data: stats } = useLeadStats();
+
+  // Mutations
+  const convertLead = useConvertLead();
+  const rejectLead = useRejectLead();
+
   const getEstadoBadge = (estado: string) => {
-    const badges = {
-      pendiente: {
-        variant: 'outline' as const,
+    const badges: Record<string, { variant: 'outline' | 'secondary' | 'default' | 'destructive'; icon: typeof Clock; label: string; color: string }> = {
+      PENDIENTE_ASIGNACION: {
+        variant: 'outline',
         icon: Clock,
         label: 'Pendiente',
         color: 'text-yellow-600',
       },
-      en_gestion: {
-        variant: 'secondary' as const,
+      PENDIENTE_INFORMACION: {
+        variant: 'outline',
         icon: AlertCircle,
-        label: 'En Gestión',
-        color:
-          'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+        label: 'Info Pendiente',
+        color: 'text-orange-600',
       },
-      convertido: {
-        variant: 'default' as const,
+      ASIGNADO: {
+        variant: 'secondary',
+        icon: AlertCircle,
+        label: 'Asignado',
+        color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+      },
+      CONVERTIDO: {
+        variant: 'default',
         icon: CheckCircle2,
         label: 'Convertido',
         color: 'bg-green-600',
       },
-      descartado: {
-        variant: 'secondary' as const,
+      RECHAZADO: {
+        variant: 'secondary',
         icon: XCircle,
-        label: 'Descartado',
+        label: 'Rechazado',
         color: '',
       },
     };
-    const badge = badges[estado as keyof typeof badges];
+    const badge = badges[estado];
     if (!badge) return null;
     const Icon = badge.icon;
     return (
@@ -105,18 +124,61 @@ export function LeadsView() {
     );
   };
 
-  const handleVerLead = (lead: Lead) => {
+  const handleVerLead = (lead: LeadDB) => {
     setLeadSeleccionado(lead);
     setModalVer(true);
   };
 
-  const handleCrearCotizacion = (lead: Lead) => {
-    toast.success(`Crear cotización desde Lead #${lead.numero}`);
+  const handleCrearCotizacion = (lead: LeadDB) => {
+    convertLead.mutate(
+      { lead_id: lead.id },
+      {
+        onSuccess: () => {
+          toast.success(`Lead #${lead.numero} convertido a cotización`);
+        },
+        onError: (error) => {
+          toast.error(`Error: ${error.message}`);
+        },
+      }
+    );
   };
 
-  const handleCambiarEstado = (lead: Lead, nuevoEstado: string) => {
-    toast.success(`Lead #${lead.numero} marcado como ${nuevoEstado}`);
+  const handleRechazar = (lead: LeadDB) => {
+    // TODO: Abrir modal para pedir motivo de rechazo
+    rejectLead.mutate(
+      { lead_id: lead.id, motivo_rechazo: 'Rechazado por el usuario' },
+      {
+        onSuccess: () => {
+          toast.success(`Lead #${lead.numero} rechazado`);
+        },
+        onError: (error) => {
+          toast.error(`Error: ${error.message}`);
+        },
+      }
+    );
   };
+
+  const handleReasignar = (lead: LeadDB) => {
+    setLeadSeleccionado(lead);
+    setModalReasignar(true);
+  };
+
+  // Calcular si un lead supera 24h
+  const supera24h = (fechaCreacion: string) => {
+    const ahora = new Date();
+    const creacion = new Date(fechaCreacion);
+    const diff = ahora.getTime() - creacion.getTime();
+    return diff > 24 * 60 * 60 * 1000;
+  };
+
+  if (error) {
+    return (
+      <Card className="p-8 text-center">
+        <XCircle className="mx-auto mb-2 h-8 w-8 text-red-500" />
+        <p className="text-sm text-red-500">Error al cargar leads</p>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -156,15 +218,15 @@ export function LeadsView() {
         </div>
         {vista === 'tabla' && (
           <Select value={filtroEstado} onValueChange={setFiltroEstado}>
-            <SelectTrigger className="h-9 w-[140px] text-sm">
+            <SelectTrigger className="h-9 w-[160px] text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos</SelectItem>
-              <SelectItem value="pendiente">Pendientes</SelectItem>
-              <SelectItem value="en_gestion">En Gestión</SelectItem>
-              <SelectItem value="convertido">Convertidos</SelectItem>
-              <SelectItem value="descartado">Descartados</SelectItem>
+              <SelectItem value="PENDIENTE_ASIGNACION">Pendientes</SelectItem>
+              <SelectItem value="ASIGNADO">Asignados</SelectItem>
+              <SelectItem value="CONVERTIDO">Convertidos</SelectItem>
+              <SelectItem value="RECHAZADO">Rechazados</SelectItem>
             </SelectContent>
           </Select>
         )}
@@ -194,15 +256,15 @@ export function LeadsView() {
         {[
           {
             label: 'Pendientes',
-            count: leads.filter((l) => l.estado === 'pendiente').length,
+            count: stats?.pendiente_asignacion ?? 0,
           },
           {
-            label: 'En Gestión',
-            count: leads.filter((l) => l.estado === 'en_gestion').length,
+            label: 'Asignados',
+            count: stats?.asignado ?? 0,
           },
           {
             label: 'Convertidos',
-            count: leads.filter((l) => l.estado === 'convertido').length,
+            count: stats?.convertido ?? 0,
           },
         ].map((stat) => (
           <Card key={stat.label} className="p-3">
@@ -212,8 +274,16 @@ export function LeadsView() {
         ))}
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <Card className="p-8 text-center">
+          <Loader2 className="mx-auto mb-2 h-8 w-8 animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Cargando leads...</p>
+        </Card>
+      )}
+
       {/* Vista Tabla */}
-      {vista === 'tabla' && (
+      {!isLoading && vista === 'tabla' && (
         <>
           {/* Tabla compacta - Desktop */}
           <Card className="hidden overflow-hidden md:block">
@@ -242,7 +312,7 @@ export function LeadsView() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {leadsFiltrados.map((lead) => (
+                  {leads.map((lead) => (
                     <tr
                       key={lead.id}
                       className="text-sm transition-colors hover:bg-muted/30"
@@ -255,8 +325,8 @@ export function LeadsView() {
                       </td>
                       <td className="px-3 py-2">
                         <div>
-                          <p className="font-medium">{lead.razonSocial}</p>
-                          {lead.alerta24h && (
+                          <p className="font-medium">{lead.razon_social}</p>
+                          {supera24h(lead.creado_en) && lead.estado !== 'CONVERTIDO' && lead.estado !== 'RECHAZADO' && (
                             <Badge
                               variant="destructive"
                               className="mt-0.5 h-4 text-[10px]"
@@ -269,9 +339,9 @@ export function LeadsView() {
                       <td className="px-3 py-2 text-xs text-muted-foreground">
                         {lead.nit}
                       </td>
-                      <td className="px-3 py-2">{lead.nombreContacto}</td>
+                      <td className="px-3 py-2">{lead.nombre_contacto}</td>
                       <td className="px-3 py-2 text-xs text-muted-foreground">
-                        {new Date(lead.creadoEn).toLocaleString('es-CO', {
+                        {new Date(lead.creado_en).toLocaleString('es-CO', {
                           day: '2-digit',
                           month: '2-digit',
                           year: 'numeric',
@@ -280,7 +350,7 @@ export function LeadsView() {
                         })}
                       </td>
                       <td className="px-3 py-2 text-xs text-muted-foreground">
-                        {lead.asignadoA}
+                        {(lead as any).asesor?.nombre ?? 'Sin asignar'}
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex items-center justify-end gap-1">
@@ -293,12 +363,13 @@ export function LeadsView() {
                             <Eye className="h-3 w-3" />
                             Ver
                           </Button>
-                          {lead.estado === 'en_gestion' && (
+                          {lead.estado === 'ASIGNADO' && (
                             <Button
                               size="sm"
                               variant="outline"
                               className="h-7 gap-1 px-2 text-xs"
                               onClick={() => handleCrearCotizacion(lead)}
+                              disabled={convertLead.isPending}
                             >
                               <FileText className="h-3 w-3" />
                               Cotizar
@@ -315,33 +386,31 @@ export function LeadsView() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                className="text-sm"
-                                onClick={() => handleVerLead(lead)}
-                              >
-                                Ver detalles
-                              </DropdownMenuItem>
-                              {lead.estado === 'pendiente' && (
-                                <DropdownMenuItem
-                                  className="text-sm"
-                                  onClick={() =>
-                                    handleCambiarEstado(lead, 'en_gestion')
-                                  }
-                                >
-                                  Marcar como En Gestión
-                                </DropdownMenuItem>
-                              )}
-                              {lead.estado === 'en_gestion' && (
+                              {lead.estado === 'ASIGNADO' && (
                                 <DropdownMenuItem
                                   className="text-sm"
                                   onClick={() => handleCrearCotizacion(lead)}
                                 >
-                                  Crear Cotización
+                                  Convertir a Cotización
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem className="text-sm text-red-600">
-                                Descartar
-                              </DropdownMenuItem>
+                              {lead.estado !== 'CONVERTIDO' && lead.estado !== 'RECHAZADO' && (
+                                <DropdownMenuItem
+                                  className="text-sm"
+                                  onClick={() => handleReasignar(lead)}
+                                >
+                                  <UserPlus className="mr-2 h-3.5 w-3.5" />
+                                  Reasignar
+                                </DropdownMenuItem>
+                              )}
+                              {lead.estado !== 'CONVERTIDO' && lead.estado !== 'RECHAZADO' && (
+                                <DropdownMenuItem
+                                  className="text-sm text-red-600"
+                                  onClick={() => handleRechazar(lead)}
+                                >
+                                  Rechazar
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -351,7 +420,7 @@ export function LeadsView() {
                 </tbody>
               </table>
             </div>
-            {leadsFiltrados.length === 0 && (
+            {leads.length === 0 && (
               <div className="p-8 text-center">
                 <Megaphone className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">
@@ -363,13 +432,13 @@ export function LeadsView() {
 
           {/* Lista compacta - Mobile */}
           <div className="space-y-2 md:hidden">
-            {leadsFiltrados.map((lead) => (
+            {leads.map((lead) => (
               <Card key={lead.id} className="p-3">
                 <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-xs">#{lead.numero}</span>
                     {getEstadoBadge(lead.estado)}
-                    {lead.alerta24h && (
+                    {supera24h(lead.creado_en) && lead.estado !== 'CONVERTIDO' && lead.estado !== 'RECHAZADO' && (
                       <Badge variant="destructive" className="h-4 text-[10px]">
                         24h
                       </Badge>
@@ -384,17 +453,18 @@ export function LeadsView() {
                     Ver
                   </Button>
                 </div>
-                <h4 className="mb-1 font-semibold">{lead.razonSocial}</h4>
+                <h4 className="mb-1 font-semibold">{lead.razon_social}</h4>
                 <p className="mb-1 text-xs text-muted-foreground">{lead.nit}</p>
                 <p className="mb-2 text-xs text-muted-foreground">
-                  {lead.nombreContacto}
+                  {lead.nombre_contacto}
                 </p>
-                {lead.estado === 'en_gestion' && (
+                {lead.estado === 'ASIGNADO' && (
                   <Button
                     size="sm"
                     variant="outline"
                     className="mt-2 w-full gap-1"
                     onClick={() => handleCrearCotizacion(lead)}
+                    disabled={convertLead.isPending}
                   >
                     <FileText className="h-3 w-3" />
                     Crear Cotización
@@ -402,7 +472,7 @@ export function LeadsView() {
                 )}
               </Card>
             ))}
-            {leadsFiltrados.length === 0 && (
+            {leads.length === 0 && (
               <Card className="p-8 text-center">
                 <Megaphone className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">
@@ -415,14 +485,16 @@ export function LeadsView() {
       )}
 
       {/* Vista Kanban */}
-      {vista === 'kanban' && (
+      {!isLoading && vista === 'kanban' && (
         <Card className="h-[calc(100vh-280px)] overflow-hidden p-3 md:h-[calc(100vh-240px)]">
           <LeadsKanban
+            leads={leads}
             onVerDetalle={(lead) => {
               setLeadSeleccionado(lead);
               setModalVer(true);
             }}
             onCrear={() => setModalCrear(true)}
+            onReasignar={handleReasignar}
           />
         </Card>
       )}
@@ -431,9 +503,6 @@ export function LeadsView() {
       <CrearLeadModal
         open={modalCrear}
         onOpenChange={setModalCrear}
-        onCreated={(lead) => {
-          console.log('Nuevo lead:', lead);
-        }}
       />
 
       {leadSeleccionado && (
@@ -442,6 +511,14 @@ export function LeadsView() {
           onOpenChange={setModalVer}
           lead={leadSeleccionado}
           onCrearCotizacion={handleCrearCotizacion}
+        />
+      )}
+
+      {leadSeleccionado && (
+        <ReasignarLeadModal
+          open={modalReasignar}
+          onOpenChange={setModalReasignar}
+          lead={leadSeleccionado}
         />
       )}
     </div>

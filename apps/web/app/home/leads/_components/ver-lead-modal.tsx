@@ -1,6 +1,6 @@
 'use client';
 
-import { FileText, Megaphone, X } from 'lucide-react';
+import { FileText, Megaphone } from 'lucide-react';
 
 import { Badge } from '@kit/ui/badge';
 import { Button } from '@kit/ui/button';
@@ -15,13 +15,16 @@ import {
 import { Label } from '@kit/ui/label';
 import { Separator } from '@kit/ui/separator';
 
-import type { Lead } from '~/lib/mock-data';
+import { useLeads } from '~/lib/leads';
+
+// Tipo del lead desde la base de datos (reutiliza el tipo del hook)
+type LeadDB = NonNullable<ReturnType<typeof useLeads>['data']>[number];
 
 interface VerLeadModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  lead: Lead;
-  onCrearCotizacion?: (lead: Lead) => void;
+  lead: LeadDB;
+  onCrearCotizacion?: (lead: LeadDB) => void;
 }
 
 export function VerLeadModal({
@@ -31,30 +34,34 @@ export function VerLeadModal({
   onCrearCotizacion,
 }: VerLeadModalProps) {
   const getEstadoBadge = (estado: string) => {
-    const badges = {
-      pendiente: {
-        variant: 'outline' as const,
+    const badges: Record<string, { variant: 'outline' | 'secondary' | 'default'; label: string; className: string }> = {
+      PENDIENTE_ASIGNACION: {
+        variant: 'outline',
         label: 'Pendiente',
         className: 'border-yellow-500 text-yellow-600',
       },
-      en_gestion: {
-        variant: 'secondary' as const,
-        label: 'En Gestión',
-        className:
-          'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+      PENDIENTE_INFORMACION: {
+        variant: 'outline',
+        label: 'Info Pendiente',
+        className: 'border-orange-500 text-orange-600',
       },
-      convertido: {
-        variant: 'default' as const,
+      ASIGNADO: {
+        variant: 'secondary',
+        label: 'Asignado',
+        className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+      },
+      CONVERTIDO: {
+        variant: 'default',
         label: 'Convertido',
         className: 'bg-green-600',
       },
-      descartado: {
-        variant: 'secondary' as const,
-        label: 'Descartado',
+      RECHAZADO: {
+        variant: 'secondary',
+        label: 'Rechazado',
         className: '',
       },
     };
-    const badge = badges[estado as keyof typeof badges];
+    const badge = badges[estado];
     if (!badge) return null;
     return (
       <Badge
@@ -76,37 +83,45 @@ export function VerLeadModal({
     });
   };
 
+  const getCanalLabel = (canal: string) => {
+    const canales: Record<string, string> = {
+      WHATSAPP: 'WhatsApp',
+      WEB: 'Web',
+      MANUAL: 'Manual',
+    };
+    return canales[canal] || canal;
+  };
+
+  // Calcular si supera 24h
+  const supera24h = (fechaCreacion: string, estado: string) => {
+    if (estado === 'CONVERTIDO' || estado === 'RECHAZADO') return false;
+    const ahora = new Date();
+    const creacion = new Date(fechaCreacion);
+    const diff = ahora.getTime() - creacion.getTime();
+    return diff > 24 * 60 * 60 * 1000;
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[92vh] w-[95vw] max-w-2xl flex-col overflow-hidden p-0 md:max-h-[90vh] md:w-full">
         <DialogHeader className="flex-shrink-0 border-b border-border px-3 py-3 md:px-6 md:py-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
-              <div className="gradient-accent flex-shrink-0 rounded-lg p-1.5 md:p-2">
-                <Megaphone className="h-3.5 w-3.5 text-white md:h-4 md:w-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <DialogTitle className="flex items-center gap-2 text-sm md:text-base">
-                  <span className="truncate">Lead #{lead.numero}</span>
-                  {getEstadoBadge(lead.estado)}
-                </DialogTitle>
-                <DialogDescription className="sr-only">
-                  Detalles completos del lead incluyendo información de contacto
-                  y requerimiento
-                </DialogDescription>
-                <p className="mt-1 truncate text-xs text-muted-foreground md:text-sm">
-                  {lead.razonSocial}
-                </p>
-              </div>
+          <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
+            <div className="gradient-accent flex-shrink-0 rounded-lg p-1.5 md:p-2">
+              <Megaphone className="h-3.5 w-3.5 text-white md:h-4 md:w-4" />
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              className="h-7 w-7 flex-shrink-0 p-0 md:h-8 md:w-8"
-            >
-              <X className="h-3.5 w-3.5 md:h-4 md:w-4" />
-            </Button>
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="flex items-center gap-2 text-sm md:text-base">
+                <span className="truncate">Lead #{lead.numero}</span>
+                {getEstadoBadge(lead.estado)}
+              </DialogTitle>
+              <DialogDescription className="sr-only">
+                Detalles completos del lead incluyendo información de contacto
+                y requerimiento
+              </DialogDescription>
+              <p className="mt-1 truncate text-xs text-muted-foreground md:text-sm">
+                {lead.razon_social}
+              </p>
+            </div>
           </div>
         </DialogHeader>
 
@@ -122,7 +137,7 @@ export function VerLeadModal({
                   <Label className="text-[10px] text-muted-foreground md:text-xs">
                     Razón Social
                   </Label>
-                  <p className="mt-1 text-xs md:text-sm">{lead.razonSocial}</p>
+                  <p className="mt-1 text-xs md:text-sm">{lead.razon_social}</p>
                 </div>
                 <div>
                   <Label className="text-[10px] text-muted-foreground md:text-xs">
@@ -132,11 +147,11 @@ export function VerLeadModal({
                 </div>
                 <div>
                   <Label className="text-[10px] text-muted-foreground md:text-xs">
-                    Fuente
+                    Canal de Entrada
                   </Label>
                   <p className="mt-1">
                     <Badge variant="outline" className="text-[10px] md:text-xs">
-                      {lead.origen}
+                      {getCanalLabel(lead.canal_origen)}
                     </Badge>
                   </p>
                 </div>
@@ -160,7 +175,7 @@ export function VerLeadModal({
                     Nombre
                   </Label>
                   <p className="mt-1 text-xs md:text-sm">
-                    {lead.nombreContacto}
+                    {lead.nombre_contacto}
                   </p>
                 </div>
                 <div>
@@ -169,10 +184,10 @@ export function VerLeadModal({
                   </Label>
                   <p className="mt-1 truncate text-xs md:text-sm">
                     <a
-                      href={`mailto:${lead.email}`}
+                      href={`mailto:${lead.email_contacto}`}
                       className="text-primary hover:underline"
                     >
-                      {lead.email}
+                      {lead.email_contacto}
                     </a>
                   </p>
                 </div>
@@ -182,10 +197,10 @@ export function VerLeadModal({
                   </Label>
                   <p className="mt-1 text-xs md:text-sm">
                     <a
-                      href={`tel:${lead.telefono}`}
+                      href={`tel:${lead.celular_contacto}`}
                       className="text-primary hover:underline"
                     >
-                      {lead.telefono}
+                      {lead.celular_contacto}
                     </a>
                   </p>
                 </div>
@@ -210,25 +225,29 @@ export function VerLeadModal({
                   <Label className="text-[10px] text-muted-foreground md:text-xs">
                     Asignado a
                   </Label>
-                  <p className="mt-1 text-xs md:text-sm">{lead.asignadoA}</p>
+                  <p className="mt-1 text-xs md:text-sm">
+                    {lead.asesor?.nombre ?? 'Sin asignar'}
+                  </p>
                 </div>
                 <div>
                   <Label className="text-[10px] text-muted-foreground md:text-xs">
-                    Creado por
+                    Fecha del Lead
                   </Label>
-                  <p className="mt-1 text-xs md:text-sm">{lead.creadoPor}</p>
+                  <p className="mt-1 text-xs md:text-sm">
+                    {formatFecha(lead.fecha_lead)}
+                  </p>
                 </div>
                 <div className="sm:col-span-2">
                   <Label className="text-[10px] text-muted-foreground md:text-xs">
-                    Fecha de creación
+                    Fecha de creación en sistema
                   </Label>
                   <p className="mt-1 text-xs md:text-sm">
-                    {formatFecha(lead.creadoEn)}
+                    {formatFecha(lead.creado_en)}
                   </p>
                 </div>
               </div>
 
-              {lead.alerta24h && (
+              {supera24h(lead.creado_en, lead.estado) && (
                 <>
                   <Separator className="my-3" />
                   <div className="flex items-center gap-2 rounded-md border border-yellow-200 bg-yellow-50 p-2 dark:border-yellow-900 dark:bg-yellow-900/20">
@@ -252,7 +271,7 @@ export function VerLeadModal({
           >
             Cerrar
           </Button>
-          {lead.estado === 'en_gestion' && onCrearCotizacion && (
+          {lead.estado === 'ASIGNADO' && onCrearCotizacion && (
             <Button
               size="sm"
               onClick={() => {
