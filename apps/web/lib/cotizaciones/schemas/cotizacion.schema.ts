@@ -4,17 +4,26 @@ import { z } from 'zod';
 export const CotizacionEstadoEnum = z.enum([
   'BORRADOR',
   'CREACION_OFERTA',
+  'PENDIENTE_APROBACION_MARGEN',
   'NEGOCIACION',
   'RIESGO',
+  'ENVIADA_CLIENTE',
+  'PROFORMA_ENVIADA',
+  'PENDIENTE_AJUSTES',
+  'ACEPTADA_CLIENTE',
+  'RECHAZADA_CLIENTE',
   'PENDIENTE_OC',
-  'APROBACION_MARGEN',
   'GANADA',
   'PERDIDA',
 ]);
 
 export const FormaPagoEnum = z.enum([
   'ANTICIPADO',
+  'CONTRA_ENTREGA',
+  'CREDITO_8',
+  'CREDITO_15',
   'CREDITO_30',
+  'CREDITO_45',
   'CREDITO_60',
   'CREDITO_90',
 ]);

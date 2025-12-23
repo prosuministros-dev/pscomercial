@@ -32,6 +32,7 @@ interface CrearProductoModalProps {
   onOpenChange: (open: boolean) => void;
   onCreated?: (producto: unknown) => void;
   trmActual: number;
+  cotizacionId?: string;
 }
 
 export function CrearProductoModal({
@@ -39,6 +40,7 @@ export function CrearProductoModal({
   onOpenChange,
   onCreated,
   trmActual,
+  cotizacionId,
 }: CrearProductoModalProps) {
   const [formData, setFormData] = useState({
     numeroParte: '',

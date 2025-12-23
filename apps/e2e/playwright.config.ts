@@ -25,7 +25,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost:3002',
 
     // take a screenshot when a test fails
     screenshot: 'only-on-failure',
@@ -43,9 +43,25 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
+    // Setup project - runs first to authenticate
+    {
+      name: 'setup',
+      testMatch: /.*\.setup\.ts/,
+    },
     {
       name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        // Use saved auth state
+        storageState: '.auth/user.json',
+      },
+      dependencies: ['setup'],
+    },
+    // Tests that don't need auth
+    {
+      name: 'chromium-no-auth',
       use: { ...devices['Desktop Chrome'] },
+      testMatch: /.*auth.*\.spec\.ts/,
     },
     /* Test against mobile viewports. */
     // {

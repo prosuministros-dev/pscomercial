@@ -41,7 +41,6 @@ import {
 import {
   useLeads,
   useLeadStats,
-  useConvertLead,
   useRejectLead,
   type LeadEstado,
 } from '~/lib/leads';
@@ -50,6 +49,7 @@ import { CrearLeadModal } from './crear-lead-modal';
 import { LeadsKanban } from './leads-kanban';
 import { ReasignarLeadModal } from './reasignar-lead-modal';
 import { VerLeadModal } from './ver-lead-modal';
+import { CrearCotizacionModal } from '../../cotizaciones/_components/crear-cotizacion-modal';
 
 type VistaType = 'tabla' | 'kanban';
 
@@ -63,6 +63,7 @@ export function LeadsView() {
   const [modalCrear, setModalCrear] = useState(false);
   const [modalVer, setModalVer] = useState(false);
   const [modalReasignar, setModalReasignar] = useState(false);
+  const [modalCotizacion, setModalCotizacion] = useState(false);
   const [leadSeleccionado, setLeadSeleccionado] = useState<LeadDB | null>(null);
 
   // Queries
@@ -74,7 +75,6 @@ export function LeadsView() {
   const { data: stats } = useLeadStats();
 
   // Mutations
-  const convertLead = useConvertLead();
   const rejectLead = useRejectLead();
 
   const getEstadoBadge = (estado: string) => {
@@ -130,17 +130,8 @@ export function LeadsView() {
   };
 
   const handleCrearCotizacion = (lead: LeadDB) => {
-    convertLead.mutate(
-      { lead_id: lead.id },
-      {
-        onSuccess: () => {
-          toast.success(`Lead #${lead.numero} convertido a cotización`);
-        },
-        onError: (error) => {
-          toast.error(`Error: ${error.message}`);
-        },
-      }
-    );
+    setLeadSeleccionado(lead);
+    setModalCotizacion(true);
   };
 
   const handleRechazar = (lead: LeadDB) => {
@@ -369,7 +360,6 @@ export function LeadsView() {
                               variant="outline"
                               className="h-7 gap-1 px-2 text-xs"
                               onClick={() => handleCrearCotizacion(lead)}
-                              disabled={convertLead.isPending}
                             >
                               <FileText className="h-3 w-3" />
                               Cotizar
@@ -464,7 +454,6 @@ export function LeadsView() {
                     variant="outline"
                     className="mt-2 w-full gap-1"
                     onClick={() => handleCrearCotizacion(lead)}
-                    disabled={convertLead.isPending}
                   >
                     <FileText className="h-3 w-3" />
                     Crear Cotización
@@ -495,6 +484,7 @@ export function LeadsView() {
             }}
             onCrear={() => setModalCrear(true)}
             onReasignar={handleReasignar}
+            onConvertir={handleCrearCotizacion}
           />
         </Card>
       )}
@@ -519,6 +509,14 @@ export function LeadsView() {
           open={modalReasignar}
           onOpenChange={setModalReasignar}
           lead={leadSeleccionado}
+        />
+      )}
+
+      {leadSeleccionado && (
+        <CrearCotizacionModal
+          open={modalCotizacion}
+          onOpenChange={setModalCotizacion}
+          leadOrigen={leadSeleccionado}
         />
       )}
     </div>

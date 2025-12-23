@@ -130,6 +130,8 @@ export type Database = {
           bloqueado: boolean | null
           celular_contacto: string | null
           ciudad: string | null
+          comercial_asignado_id: string | null
+          correo_facturacion: string | null
           creado_en: string | null
           creado_por: string | null
           cupo_credito: number | null
@@ -146,12 +148,15 @@ export type Database = {
           nit: string
           nombre_contacto: string | null
           razon_social: string
+          telefono_principal: string | null
         }
         Insert: {
           activo?: boolean | null
           bloqueado?: boolean | null
           celular_contacto?: string | null
           ciudad?: string | null
+          comercial_asignado_id?: string | null
+          correo_facturacion?: string | null
           creado_en?: string | null
           creado_por?: string | null
           cupo_credito?: number | null
@@ -168,12 +173,15 @@ export type Database = {
           nit: string
           nombre_contacto?: string | null
           razon_social: string
+          telefono_principal?: string | null
         }
         Update: {
           activo?: boolean | null
           bloqueado?: boolean | null
           celular_contacto?: string | null
           ciudad?: string | null
+          comercial_asignado_id?: string | null
+          correo_facturacion?: string | null
           creado_en?: string | null
           creado_por?: string | null
           cupo_credito?: number | null
@@ -190,8 +198,17 @@ export type Database = {
           nit?: string
           nombre_contacto?: string | null
           razon_social?: string
+          telefono_principal?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clientes_comercial_asignado_id_fkey"
+            columns: ["comercial_asignado_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cotizacion_adjuntos: {
         Row: {
@@ -760,6 +777,41 @@ export type Database = {
         }
         Relationships: []
       }
+      margenes_minimos: {
+        Row: {
+          creado_en: string | null
+          forma_pago: Database["public"]["Enums"]["forma_pago"]
+          id: string
+          margen_minimo: number
+          modificado_en: string | null
+          vertical_id: string
+        }
+        Insert: {
+          creado_en?: string | null
+          forma_pago: Database["public"]["Enums"]["forma_pago"]
+          id?: string
+          margen_minimo: number
+          modificado_en?: string | null
+          vertical_id: string
+        }
+        Update: {
+          creado_en?: string | null
+          forma_pago?: Database["public"]["Enums"]["forma_pago"]
+          id?: string
+          margen_minimo?: number
+          modificado_en?: string | null
+          vertical_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "margenes_minimos_vertical_id_fkey"
+            columns: ["vertical_id"]
+            isOneToOne: false
+            referencedRelation: "verticales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       permisos: {
         Row: {
           accion: Database["public"]["Enums"]["permiso_accion"]
@@ -1123,6 +1175,13 @@ export type Database = {
       es_asesor_activo: { Args: { p_usuario_id: string }; Returns: boolean }
       lead_supera_24h: { Args: { p_lead_id: string }; Returns: boolean }
       obtener_asesor_disponible: { Args: never; Returns: string }
+      obtener_margen_minimo: {
+        Args: {
+          p_forma_pago: Database["public"]["Enums"]["forma_pago"]
+          p_vertical_id: string
+        }
+        Returns: number
+      }
       obtener_trm: { Args: { p_fecha?: string }; Returns: number }
       usuario_tiene_permiso: {
         Args: {
@@ -1136,18 +1195,35 @@ export type Database = {
         Args: { p_cotizacion_id: string }
         Returns: boolean
       }
+      verificar_margen_cotizacion_v2: {
+        Args: { p_cotizacion_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       cotizacion_estado:
         | "BORRADOR"
         | "CREACION_OFERTA"
+        | "PENDIENTE_APROBACION_MARGEN"
         | "NEGOCIACION"
         | "RIESGO"
+        | "ENVIADA_CLIENTE"
+        | "PROFORMA_ENVIADA"
+        | "PENDIENTE_AJUSTES"
+        | "ACEPTADA_CLIENTE"
+        | "RECHAZADA_CLIENTE"
         | "PENDIENTE_OC"
-        | "APROBACION_MARGEN"
         | "GANADA"
         | "PERDIDA"
-      forma_pago: "ANTICIPADO" | "CREDITO_30" | "CREDITO_60" | "CREDITO_90"
+      forma_pago:
+        | "ANTICIPADO"
+        | "CONTRA_ENTREGA"
+        | "CREDITO_8"
+        | "CREDITO_15"
+        | "CREDITO_30"
+        | "CREDITO_45"
+        | "CREDITO_60"
+        | "CREDITO_90"
       iva_tipo: "IVA_0" | "IVA_5" | "IVA_19"
       lead_canal: "WHATSAPP" | "WEB" | "MANUAL"
       lead_estado:
@@ -1296,14 +1372,28 @@ export const Constants = {
       cotizacion_estado: [
         "BORRADOR",
         "CREACION_OFERTA",
+        "PENDIENTE_APROBACION_MARGEN",
         "NEGOCIACION",
         "RIESGO",
+        "ENVIADA_CLIENTE",
+        "PROFORMA_ENVIADA",
+        "PENDIENTE_AJUSTES",
+        "ACEPTADA_CLIENTE",
+        "RECHAZADA_CLIENTE",
         "PENDIENTE_OC",
-        "APROBACION_MARGEN",
         "GANADA",
         "PERDIDA",
       ],
-      forma_pago: ["ANTICIPADO", "CREDITO_30", "CREDITO_60", "CREDITO_90"],
+      forma_pago: [
+        "ANTICIPADO",
+        "CONTRA_ENTREGA",
+        "CREDITO_8",
+        "CREDITO_15",
+        "CREDITO_30",
+        "CREDITO_45",
+        "CREDITO_60",
+        "CREDITO_90",
+      ],
       iva_tipo: ["IVA_0", "IVA_5", "IVA_19"],
       lead_canal: ["WHATSAPP", "WEB", "MANUAL"],
       lead_estado: [

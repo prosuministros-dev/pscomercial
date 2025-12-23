@@ -149,17 +149,17 @@ export function VerLeadModal({
                   <Label className="text-[10px] text-muted-foreground md:text-xs">
                     Canal de Entrada
                   </Label>
-                  <p className="mt-1">
+                  <div className="mt-1">
                     <Badge variant="outline" className="text-[10px] md:text-xs">
                       {getCanalLabel(lead.canal_origen)}
                     </Badge>
-                  </p>
+                  </div>
                 </div>
                 <div>
                   <Label className="text-[10px] text-muted-foreground md:text-xs">
                     Estado
                   </Label>
-                  <p className="mt-1">{getEstadoBadge(lead.estado)}</p>
+                  <div className="mt-1">{getEstadoBadge(lead.estado)}</div>
                 </div>
               </div>
             </Card>
