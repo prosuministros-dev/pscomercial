@@ -20,6 +20,7 @@ import { NotificacionesPanel } from '~/components/notificaciones-panel';
 import { ProfileAccountDropdownContainer } from '~/components/personal-account-dropdown-container';
 import { navigationConfig } from '~/config/navigation.config';
 import { notificacionesExtendidas } from '~/lib/mock-data';
+import { SettingsDropdown } from './settings-dropdown';
 
 /**
  * TopNavigation - Navegación superior estilo Prosuministros CRM
@@ -50,15 +51,10 @@ export function TopNavigation() {
     return [...acc, item];
   }, []);
 
-  // Separar rutas principales de settings
+  // Filtrar rutas principales (excluir settings y admin que van en dropdown)
   const mainRoutes = routes.filter(
     (route) =>
       !route.path.includes('/settings') && !route.path.includes('/admin')
-  );
-
-  const settingsRoutes = routes.filter(
-    (route) =>
-      route.path.includes('/settings') || route.path.includes('/admin')
   );
 
   return (
@@ -95,19 +91,8 @@ export function TopNavigation() {
           onOpenChange={setNotificacionesOpen}
         />
 
-        {/* Settings/Admin (visible solo en desktop) */}
-        <div className="hidden items-center space-x-1 lg:flex">
-          {settingsRoutes.map((route) => (
-            <NavItem
-              key={route.path}
-              path={route.path}
-              label={route.label}
-              icon={route.Icon}
-              end={route.end}
-              compact
-            />
-          ))}
-        </div>
+        {/* Settings Dropdown */}
+        <SettingsDropdown />
 
         {/* User Menu */}
         <ProfileAccountDropdownContainer showProfileName={false} />

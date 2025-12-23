@@ -21,7 +21,22 @@
       "Bash(cd:*)",
       "Bash(timeout 30 pnpm dev:*)",
       "Bash(git pull:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(python -c:*)",
+      "Bash(pip install:*)",
+      "Bash(ls -la \"C:\\Users\\freddyrs\\Documents\\TDX Proyectos\\PS\\pscomercial\\Context\\HU\\Excel Referencias\"\"*.md 2>/dev/null || dir \"C:UsersfreddyrsDocumentsTDX ProyectosPSpscomercialContextHUExcel Referencias*.md \")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(dir:*)",
+      "Bash(pnpm with-env next dev:*)",
+      "Bash(echo $env:APPDATA)",
+      "Bash(powershell:*)",
+      "Bash(curl:*)",
+      "Bash(set SUPABASE_ACCESS_TOKEN=sbp_f13cb78375bc168e9b74b8d2a60c5f7903260a6a)",
+      "Bash(npx supabase:*)",
+      "Bash(dir /s /b \"%APPDATA%\\Claude\\*config*.json\")",
+      "Bash(dir /s /b \"%USERPROFILE%\\.claude\\*\")"
     ]
   },
   "mcpServers": {
@@ -29,11 +44,11 @@
       "command": "npx",
       "args": [
         "-y",
-        "@anthropic-ai/mcp-supabase"
-      ],
-      "env": {
-        "SUPABASE_ACCESS_TOKEN": "PENDIENTE_OBTENER_DE_SUPABASE_DASHBOARD"
-      }
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "sbp_f13cb78375bc168e9b74b8d2a60c5f7903260a6a",
+        "--project-ref=zsauumglbhindsplazpk"
+      ]
     },
     "playwright": {
       "command": "npx",

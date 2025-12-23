@@ -41,7 +41,7 @@ PS Comercial es un sistema de gestión comercial que incluye:
 | HU-0009 | Seguimiento y Alertas | Media | Pendiente | 0% |
 | HU-0010 | Reportes y Dashboard | Baja | Pendiente | 0% |
 | HU-0011 | Roles y Permisos | Alta | Pendiente | 0% |
-| HU-0012 | Bot de WhatsApp | Baja | Pendiente | 0% |
+| HU-0012 | Bot de WhatsApp | Baja | En Analisis | 15% |
 
 ---
 
@@ -217,9 +217,52 @@ PS Comercial es un sistema de gestión comercial que incluye:
 - **Agentes**: `/.claude/agents/`
 - **Workflows**: `/.claude/workflows/`
 - **Plan UI**: `/Context/.MD/PLAN-IMPLEMENTACION-UI-TEMPLATE.md`
+- **Plan WhatsApp**: `/Context/.MD/PLAN-IMPLEMENTACION-WHATSAPP-HU0012.md`
 - **Supabase Dashboard**: https://supabase.com/dashboard/project/zsauumglbhindsplazpk
 
 ---
 
-**Última actualización**: 2025-01-XX
-**Actualizado por**: @devteam
+## Analisis HU-0012: Modulo WhatsApp
+
+### Estado del Analisis (2025-12-19)
+
+**Documento completo**: `/Context/.MD/PLAN-IMPLEMENTACION-WHATSAPP-HU0012.md`
+
+#### Resumen del Gap Analysis
+
+| Componente | Estado Actual | Requerido HU-0012 |
+|------------|---------------|-------------------|
+| UI Panel Conversaciones | Mock Data (40%) | BD Real + Realtime |
+| Base de Datos | NO EXISTE | 5 tablas nuevas |
+| Edge Function Webhook | NO EXISTE | Requerido |
+| Bot Conversacional | NO EXISTE | Menu + 3 flujos |
+| Integracion Meta API | NO EXISTE | Critico |
+| Embedded Sign-Up | NO EXISTE | Requerido |
+| Crear Lead desde Chat | NO EXISTE | Requerido |
+| Notificaciones Internas | NO EXISTE | Requerido |
+
+#### Fases de Implementacion
+
+1. **FASE 1**: Infraestructura BD (Migracion SQL)
+2. **FASE 2**: Types e Interfaces Backend
+3. **FASE 3**: API y Servicios (Hooks, Actions)
+4. **FASE 4**: Edge Function Webhook WhatsApp
+5. **FASE 5**: Integracion Meta WhatsApp API
+6. **FASE 6**: Actualizar UI Frontend
+7. **FASE 7**: Sistema de Notificaciones
+8. **FASE 8**: Testing y QA
+9. **FASE 9**: Documentacion y Deploy
+
+**Estimacion Total**: 6-8 semanas
+
+#### Dependencias Externas Bloqueantes
+
+- [ ] Cuenta Meta Business verificada
+- [ ] WhatsApp Business Account (WABA)
+- [ ] Numero de telefono registrado
+- [ ] Credenciales Meta API
+
+---
+
+**Ultima actualizacion**: 2025-12-19
+**Actualizado por**: @business-analyst + @devteam
