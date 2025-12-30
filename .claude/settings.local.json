@@ -21,7 +21,26 @@
       "Bash(cd:*)",
       "Bash(timeout 30 pnpm dev:*)",
       "Bash(git pull:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(python -c:*)",
+      "Bash(pip install:*)",
+      "Bash(ls -la \"C:\\Users\\freddyrs\\Documents\\TDX Proyectos\\PS\\pscomercial\\Context\\HU\\Excel Referencias\"\"*.md 2>/dev/null || dir \"C:UsersfreddyrsDocumentsTDX ProyectosPSpscomercialContextHUExcel Referencias*.md \")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(dir:*)",
+      "Bash(pnpm with-env next dev:*)",
+      "Bash(echo $env:APPDATA)",
+      "Bash(powershell:*)",
+      "Bash(curl:*)",
+      "Bash(set SUPABASE_ACCESS_TOKEN=sbp_f13cb78375bc168e9b74b8d2a60c5f7903260a6a)",
+      "Bash(npx supabase:*)",
+      "Bash(dir /s /b \"%APPDATA%\\Claude\\*config*.json\")",
+      "Bash(dir /s /b \"%USERPROFILE%\\.claude\\*\")",
+      "Bash(grep:*)",
+      "Bash(powershell -Command \"echo $env:APPDATA\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix\\(whatsapp\\): remove server-only exports from client barrel file\n\nFixes Vercel build error by removing server-side exports \\(whatsapp.api\nand whatsapp.actions\\) from the main index.ts barrel file. These modules\nuse ''server-only'' and ''next/headers'' which are incompatible with client\ncomponents. Server code should now be imported directly from their\nrespective files.\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push)"
     ]
   },
   "mcpServers": {
@@ -29,11 +48,11 @@
       "command": "npx",
       "args": [
         "-y",
-        "@anthropic-ai/mcp-supabase"
-      ],
-      "env": {
-        "SUPABASE_ACCESS_TOKEN": "PENDIENTE_OBTENER_DE_SUPABASE_DASHBOARD"
-      }
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "sbp_f13cb78375bc168e9b74b8d2a60c5f7903260a6a",
+        "--project-ref=hxqzzncubasczoiyqvka"
+      ]
     },
     "playwright": {
       "command": "npx",
