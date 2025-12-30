@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'motion/react';
-import { Moon, Palette, Shield, Sparkles, Sun, Zap } from 'lucide-react';
+import { AlertTriangle, Moon, Palette, Shield, Sparkles, Sun, Users, Zap } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 import { Badge } from '@kit/ui/badge';
@@ -12,11 +12,34 @@ import { Switch } from '@kit/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@kit/ui/tabs';
 
 import { configApp } from '~/lib/mock-data';
+import { useUserPermissions } from '~/lib/permisos';
 
 import { RolesPermisos } from './roles-permisos';
+import { UsuariosTable } from './usuarios-table';
 
 export function AdminPanel() {
   const { theme, setTheme } = useTheme();
+  const { tienePermiso, esGerencia, isLoading } = useUserPermissions();
+
+  // Permisos
+  const puedeGestionarUsuarios = tienePermiso('usuarios', 'CREAR');
+  const puedeVerRoles = esGerencia; // Solo gerencia puede ver roles
+
+  // Si no tiene ningún permiso de admin, mostrar mensaje
+  if (!isLoading && !puedeGestionarUsuarios && !puedeVerRoles && !esGerencia) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <AlertTriangle className="h-12 w-12 text-muted-foreground/50" />
+        <h3 className="mt-4 text-lg font-medium">Acceso denegado</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          No cuenta con permisos para esta sección.
+        </p>
+      </div>
+    );
+  }
+
+  // Determinar tab por defecto basado en permisos
+  const defaultTab = puedeGestionarUsuarios ? 'usuarios' : puedeVerRoles ? 'roles' : 'apariencia';
 
   return (
     <div className="space-y-4">
@@ -39,17 +62,32 @@ export function AdminPanel() {
       </motion.div>
 
       {/* Tabs */}
-      <Tabs defaultValue="apariencia" className="w-full">
-        <TabsList className="grid h-9 w-full grid-cols-2">
+      <Tabs defaultValue={defaultTab} className="w-full">
+        <TabsList className="grid h-9 w-full" style={{ gridTemplateColumns: `repeat(${(puedeGestionarUsuarios ? 1 : 0) + (puedeVerRoles ? 1 : 0) + 1}, 1fr)` }}>
+          {puedeGestionarUsuarios && (
+            <TabsTrigger value="usuarios" className="text-xs">
+              <Users className="mr-1.5 h-3 w-3" />
+              Usuarios
+            </TabsTrigger>
+          )}
+          {puedeVerRoles && (
+            <TabsTrigger value="roles" className="text-xs">
+              <Shield className="mr-1.5 h-3 w-3" />
+              Roles
+            </TabsTrigger>
+          )}
           <TabsTrigger value="apariencia" className="text-xs">
             <Palette className="mr-1.5 h-3 w-3" />
             Apariencia
           </TabsTrigger>
-          <TabsTrigger value="roles" className="text-xs">
-            <Shield className="mr-1.5 h-3 w-3" />
-            Roles y Permisos
-          </TabsTrigger>
         </TabsList>
+
+        {/* USUARIOS */}
+        {puedeGestionarUsuarios && (
+          <TabsContent value="usuarios" className="mt-4">
+            <UsuariosTable />
+          </TabsContent>
+        )}
 
         {/* APARIENCIA */}
         <TabsContent value="apariencia" className="mt-4 space-y-4">
@@ -250,9 +288,11 @@ export function AdminPanel() {
         </TabsContent>
 
         {/* ROLES Y PERMISOS */}
-        <TabsContent value="roles" className="mt-4">
-          <RolesPermisos />
-        </TabsContent>
+        {puedeVerRoles && (
+          <TabsContent value="roles" className="mt-4">
+            <RolesPermisos />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

@@ -96,6 +96,7 @@ export type CambiarEstadoCotizacionInput = z.infer<typeof CambiarEstadoCotizacio
 export const AddCotizacionItemSchema = z.object({
   cotizacion_id: z.string().uuid(),
   producto_id: z.string().uuid().optional(),
+  vertical_id: z.string().uuid().optional(),
   numero_parte: z.string().min(1, 'El número de parte es obligatorio'),
   nombre_producto: z.string().min(1, 'El nombre es obligatorio'),
   descripcion: z.string().optional(),
@@ -150,6 +151,13 @@ export const ReorderItemsSchema = z.object({
 });
 
 export type ReorderItemsInput = z.infer<typeof ReorderItemsSchema>;
+
+// Schema para duplicar cotización
+export const DuplicarCotizacionSchema = z.object({
+  id: z.string().uuid(),
+});
+
+export type DuplicarCotizacionInput = z.infer<typeof DuplicarCotizacionSchema>;
 
 // Schema para filtros
 export const CotizacionFiltersSchema = z.object({

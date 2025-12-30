@@ -27,29 +27,48 @@ import {
 } from '@kit/ui/select';
 import { Textarea } from '@kit/ui/textarea';
 
-import { useAddCotizacionItem, useVerticales, type IvaTipo } from '~/lib/cotizaciones';
+import { useUpdateCotizacionItem, type IvaTipo } from '~/lib/cotizaciones';
 
-interface CrearProductoModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onCreated?: () => void;
-  trmActual: number;
-  cotizacionId?: string;
+// Tipo para el item de cotización
+interface CotizacionItem {
+  id: string;
+  cotizacion_id: string;
+  numero_parte: string;
+  nombre_producto: string;
+  descripcion?: string | null;
+  observaciones?: string | null;
+  proveedor_nombre?: string | null;
+  tiempo_entrega_dias?: number | null;
+  garantia_meses?: number | null;
+  costo_unitario: number;
+  moneda_costo?: string | null;
+  porcentaje_utilidad: number;
+  iva_tipo?: string | null;
+  cantidad: number;
+  precio_unitario?: number;
+  costo_unitario_cop?: number;
 }
 
-export function CrearProductoModal({
+interface EditarProductoModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  producto: CotizacionItem | null;
+  onUpdated?: () => void;
+  trmActual: number;
+}
+
+export function EditarProductoModal({
   open,
   onOpenChange,
-  onCreated,
+  producto,
+  onUpdated,
   trmActual,
-  cotizacionId,
-}: CrearProductoModalProps) {
+}: EditarProductoModalProps) {
   const [formData, setFormData] = useState({
     numeroParte: '',
     nombre: '',
     descripcion: '',
-    vertical: '',
-    marca: '',
+    observaciones: '',
     impuesto: 'IVA_19' as IvaTipo,
     costo: 0,
     moneda: 'COP' as 'COP' | 'USD',
@@ -58,14 +77,30 @@ export function CrearProductoModal({
     proveedorSugerido: '',
     tiempoEntrega: 15,
     garantia: 12,
-    observaciones: '',
   });
 
-  // Hook para agregar item
-  const addItemMutation = useAddCotizacionItem();
+  // Hook para actualizar item
+  const updateItemMutation = useUpdateCotizacionItem();
 
-  // Hook para cargar verticales
-  const { data: verticales = [] } = useVerticales();
+  // Cargar datos del producto cuando se abre el modal
+  useEffect(() => {
+    if (producto && open) {
+      setFormData({
+        numeroParte: producto.numero_parte || '',
+        nombre: producto.nombre_producto || '',
+        descripcion: producto.descripcion || '',
+        observaciones: producto.observaciones || '',
+        impuesto: (producto.iva_tipo as IvaTipo) || 'IVA_19',
+        costo: producto.costo_unitario || 0,
+        moneda: (producto.moneda_costo as 'COP' | 'USD') || 'COP',
+        utilidadPct: producto.porcentaje_utilidad || 30,
+        cantidad: producto.cantidad || 1,
+        proveedorSugerido: producto.proveedor_nombre || '',
+        tiempoEntrega: producto.tiempo_entrega_dias || 15,
+        garantia: producto.garantia_meses || 12,
+      });
+    }
+  }, [producto, open]);
 
   // Cálculos automáticos
   const [calculado, setCalculado] = useState({
@@ -97,23 +132,15 @@ export function CrearProductoModal({
   };
 
   const calcular = () => {
-    // Convertir costo si es USD
     const costoEnCOP =
       formData.moneda === 'USD'
         ? formData.costo * trmActual
         : formData.costo;
 
-    // Calcular precio de venta con utilidad
     const precioVenta = costoEnCOP * (1 + formData.utilidadPct / 100);
-
-    // Calcular IVA
     const ivaPct = getIvaPorcentaje(formData.impuesto);
     const iva = (precioVenta * ivaPct) / 100;
-
-    // Total del item
     const totalItem = (precioVenta + iva) * formData.cantidad;
-
-    // Margen
     const margen = precioVenta - costoEnCOP;
 
     setCalculado({
@@ -129,63 +156,43 @@ export function CrearProductoModal({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const resetForm = () => {
-    setFormData({
-      numeroParte: '',
-      nombre: '',
-      descripcion: '',
-      vertical: '',
-      marca: '',
-      impuesto: 'IVA_19',
-      costo: 0,
-      moneda: 'COP',
-      utilidadPct: 30,
-      cantidad: 1,
-      proveedorSugerido: '',
-      tiempoEntrega: 15,
-      garantia: 12,
-      observaciones: '',
-    });
-  };
-
   const handleGuardar = async () => {
-    if (!formData.numeroParte || !formData.nombre || !formData.vertical || formData.costo <= 0) {
-      toast.error('Complete los campos obligatorios (Número de parte, Nombre, Vertical y Costo)');
+    if (!formData.numeroParte || !formData.nombre || formData.costo <= 0) {
+      toast.error('Complete los campos obligatorios');
       return;
     }
 
-    if (!cotizacionId) {
-      toast.error('No se ha seleccionado una cotización');
+    if (!producto) {
+      toast.error('No se ha seleccionado un producto');
       return;
     }
 
     try {
-      await addItemMutation.mutateAsync({
-        cotizacion_id: cotizacionId,
-        vertical_id: formData.vertical || undefined,
+      await updateItemMutation.mutateAsync({
+        id: producto.id,
         numero_parte: formData.numeroParte,
         nombre_producto: formData.nombre,
         descripcion: formData.descripcion || undefined,
         observaciones: formData.observaciones || undefined,
-        proveedor_nombre: formData.proveedorSugerido || undefined,
-        tiempo_entrega_dias: formData.tiempoEntrega,
-        garantia_meses: formData.garantia,
         costo_unitario: formData.costo,
         moneda_costo: formData.moneda,
         porcentaje_utilidad: formData.utilidadPct,
         iva_tipo: formData.impuesto,
         cantidad: formData.cantidad,
+        tiempo_entrega_dias: formData.tiempoEntrega,
+        garantia_meses: formData.garantia,
       });
 
-      toast.success('Producto agregado exitosamente');
-      onCreated?.();
+      toast.success('Producto actualizado exitosamente');
+      onUpdated?.();
       onOpenChange(false);
-      resetForm();
     } catch (error) {
-      console.error('Error al agregar producto:', error);
-      toast.error('Error al agregar el producto');
+      console.error('Error al actualizar producto:', error);
+      toast.error('Error al actualizar el producto');
     }
   };
+
+  if (!producto) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -197,9 +204,9 @@ export function CrearProductoModal({
               <Package className="h-5 w-5 text-white" />
             </div>
             <div>
-              <DialogTitle>Agregar Producto</DialogTitle>
+              <DialogTitle>Editar Producto</DialogTitle>
               <DialogDescription className="sr-only">
-                Formulario para agregar un nuevo producto a la cotización
+                Formulario para editar un producto de la cotización
               </DialogDescription>
               <Badge variant="outline" className="mt-1 text-xs">
                 TRM: ${trmActual.toLocaleString('es-CO')}
@@ -221,34 +228,21 @@ export function CrearProductoModal({
                   </Label>
                   <Input
                     value={formData.numeroParte}
-                    onChange={(e) =>
-                      handleChange('numeroParte', e.target.value)
-                    }
+                    onChange={(e) => handleChange('numeroParte', e.target.value)}
                     placeholder="LAP-DEL-001"
                     className="mt-1"
                   />
                 </div>
 
-                {/* Vertical */}
+                {/* Cantidad */}
                 <div>
-                  <Label className="text-xs">
-                    Vertical <span className="text-red-500">*</span>
-                  </Label>
-                  <Select
-                    value={formData.vertical}
-                    onValueChange={(value) => handleChange('vertical', value)}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Seleccionar vertical" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {verticales.map((v) => (
-                        <SelectItem key={v.id} value={v.id}>
-                          {v.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-xs">Cantidad</Label>
+                  <Input
+                    type="number"
+                    value={formData.cantidad}
+                    onChange={(e) => handleChange('cantidad', parseInt(e.target.value) || 1)}
+                    className="mt-1"
+                  />
                 </div>
 
                 {/* Nombre del Producto */}
@@ -259,7 +253,7 @@ export function CrearProductoModal({
                   <Input
                     value={formData.nombre}
                     onChange={(e) => handleChange('nombre', e.target.value)}
-                    placeholder="Dell Latitude 5430, Windows 11 Pro, etc."
+                    placeholder="Dell Latitude 5430"
                     className="mt-1"
                   />
                 </div>
@@ -270,41 +264,10 @@ export function CrearProductoModal({
                   <Textarea
                     value={formData.descripcion}
                     onChange={(e) => handleChange('descripcion', e.target.value)}
-                    placeholder="Especificaciones técnicas del producto..."
+                    placeholder="Especificaciones técnicas..."
                     rows={2}
                     className="mt-1"
                   />
-                </div>
-
-                {/* Marca */}
-                <div>
-                  <Label className="text-xs">Marca</Label>
-                  <Input
-                    value={formData.marca}
-                    onChange={(e) => handleChange('marca', e.target.value)}
-                    placeholder="Dell, HP, Lenovo, etc."
-                    className="mt-1"
-                  />
-                </div>
-
-                {/* Impuesto */}
-                <div>
-                  <Label className="text-xs">Impuesto</Label>
-                  <Select
-                    value={formData.impuesto}
-                    onValueChange={(value) =>
-                      handleChange('impuesto', value as IvaTipo)
-                    }
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="IVA_0">0% - Exento</SelectItem>
-                      <SelectItem value="IVA_5">5%</SelectItem>
-                      <SelectItem value="IVA_19">19% - IVA</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
 
                 {/* Costo */}
@@ -315,9 +278,7 @@ export function CrearProductoModal({
                   <Input
                     type="number"
                     value={formData.costo}
-                    onChange={(e) =>
-                      handleChange('costo', parseFloat(e.target.value) || 0)
-                    }
+                    onChange={(e) => handleChange('costo', parseFloat(e.target.value) || 0)}
                     placeholder="0"
                     className="mt-1"
                   />
@@ -351,9 +312,7 @@ export function CrearProductoModal({
                         <span className="font-medium">${trmActual}</span>
                         {' = '}
                         <span className="font-medium text-blue-600">
-                          $
-                          {(formData.costo * trmActual).toLocaleString('es-CO')}{' '}
-                          COP
+                          ${(formData.costo * trmActual).toLocaleString('es-CO')} COP
                         </span>
                       </p>
                     </div>
@@ -367,52 +326,47 @@ export function CrearProductoModal({
                     type="number"
                     step="0.1"
                     value={formData.utilidadPct}
-                    onChange={(e) =>
-                      handleChange(
-                        'utilidadPct',
-                        parseFloat(e.target.value) || 0
-                      )
-                    }
+                    onChange={(e) => handleChange('utilidadPct', parseFloat(e.target.value) || 0)}
                     className="mt-1"
                   />
                 </div>
 
-                {/* Cantidad */}
+                {/* Impuesto */}
                 <div>
-                  <Label className="text-xs">Cantidad</Label>
-                  <Input
-                    type="number"
-                    value={formData.cantidad}
-                    onChange={(e) =>
-                      handleChange('cantidad', parseInt(e.target.value) || 1)
-                    }
-                    className="mt-1"
-                  />
+                  <Label className="text-xs">Impuesto</Label>
+                  <Select
+                    value={formData.impuesto}
+                    onValueChange={(value) => handleChange('impuesto', value as IvaTipo)}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="IVA_0">0% - Exento</SelectItem>
+                      <SelectItem value="IVA_5">5%</SelectItem>
+                      <SelectItem value="IVA_19">19% - IVA</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                {/* Proveedor Sugerido */}
+                {/* Proveedor */}
                 <div>
-                  <Label className="text-xs">Proveedor Sugerido</Label>
+                  <Label className="text-xs">Proveedor</Label>
                   <Input
                     value={formData.proveedorSugerido}
-                    onChange={(e) =>
-                      handleChange('proveedorSugerido', e.target.value)
-                    }
-                    placeholder="Proveedor preferido"
+                    onChange={(e) => handleChange('proveedorSugerido', e.target.value)}
+                    placeholder="Proveedor"
                     className="mt-1"
                   />
                 </div>
 
                 {/* Tiempo de Entrega */}
                 <div>
-                  <Label className="text-xs">Tiempo de Entrega (días)</Label>
+                  <Label className="text-xs">Tiempo Entrega (días)</Label>
                   <Input
                     type="number"
                     value={formData.tiempoEntrega}
-                    onChange={(e) =>
-                      handleChange('tiempoEntrega', parseInt(e.target.value) || 15)
-                    }
-                    placeholder="15"
+                    onChange={(e) => handleChange('tiempoEntrega', parseInt(e.target.value) || 15)}
                     className="mt-1"
                   />
                 </div>
@@ -423,10 +377,7 @@ export function CrearProductoModal({
                   <Input
                     type="number"
                     value={formData.garantia}
-                    onChange={(e) =>
-                      handleChange('garantia', parseInt(e.target.value) || 12)
-                    }
-                    placeholder="12"
+                    onChange={(e) => handleChange('garantia', parseInt(e.target.value) || 12)}
                     className="mt-1"
                   />
                 </div>
@@ -436,10 +387,8 @@ export function CrearProductoModal({
                   <Label className="text-xs">Observaciones</Label>
                   <Textarea
                     value={formData.observaciones}
-                    onChange={(e) =>
-                      handleChange('observaciones', e.target.value)
-                    }
-                    placeholder="Notas adicionales sobre el producto..."
+                    onChange={(e) => handleChange('observaciones', e.target.value)}
+                    placeholder="Notas adicionales..."
                     rows={2}
                     className="mt-1"
                   />
@@ -447,7 +396,7 @@ export function CrearProductoModal({
               </div>
             </div>
 
-            {/* Resumen de Cálculos - 1 columna */}
+            {/* Resumen de Cálculos */}
             <div className="lg:col-span-1">
               <Card className="sticky top-4 p-4">
                 <div className="mb-4 flex items-center gap-2">
@@ -457,26 +406,16 @@ export function CrearProductoModal({
 
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">
-                      Costo Unitario:
-                    </span>
+                    <span className="text-muted-foreground">Costo Unitario:</span>
                     <span className="font-medium">
-                      $
-                      {calculado.costoConvertido.toLocaleString('es-CO', {
-                        maximumFractionDigits: 0,
-                      })}
+                      ${calculado.costoConvertido.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">
-                      Utilidad ({formData.utilidadPct}%):
-                    </span>
+                    <span className="text-muted-foreground">Utilidad ({formData.utilidadPct}%):</span>
                     <span className="font-medium text-green-600">
-                      +$
-                      {calculado.margen.toLocaleString('es-CO', {
-                        maximumFractionDigits: 0,
-                      })}
+                      +${calculado.margen.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                     </span>
                   </div>
 
@@ -485,22 +424,14 @@ export function CrearProductoModal({
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Precio Venta:</span>
                     <span className="font-medium">
-                      $
-                      {calculado.precioVenta.toLocaleString('es-CO', {
-                        maximumFractionDigits: 0,
-                      })}
+                      ${calculado.precioVenta.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">
-                      IVA ({getIvaPorcentaje(formData.impuesto)}%):
-                    </span>
+                    <span className="text-muted-foreground">IVA ({getIvaPorcentaje(formData.impuesto)}%):</span>
                     <span className="font-medium">
-                      $
-                      {calculado.iva.toLocaleString('es-CO', {
-                        maximumFractionDigits: 0,
-                      })}
+                      ${calculado.iva.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                     </span>
                   </div>
 
@@ -514,19 +445,14 @@ export function CrearProductoModal({
                   <div className="flex items-center justify-between border-t-2 border-primary/20 pt-2">
                     <span className="font-medium">Total Item:</span>
                     <span className="text-lg font-medium text-primary">
-                      $
-                      {calculado.totalItem.toLocaleString('es-CO', {
-                        maximumFractionDigits: 0,
-                      })}
+                      ${calculado.totalItem.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Margen:</span>
                     <Badge
-                      variant={
-                        formData.utilidadPct >= 25 ? 'default' : 'destructive'
-                      }
+                      variant={formData.utilidadPct >= 25 ? 'default' : 'destructive'}
                       className="text-xs"
                     >
                       {formData.utilidadPct}%
@@ -537,7 +463,7 @@ export function CrearProductoModal({
                 {formData.utilidadPct < 25 && (
                   <div className="mt-4 rounded border border-orange-200 bg-orange-50 p-2 dark:border-orange-900 dark:bg-orange-950/20">
                     <p className="text-xs text-orange-600 dark:text-orange-400">
-                      Margen bajo. Requiere aprobación de gerencia.
+                      Margen bajo. Requiere aprobación.
                     </p>
                   </div>
                 )}
@@ -556,7 +482,7 @@ export function CrearProductoModal({
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
-              disabled={addItemMutation.isPending}
+              disabled={updateItemMutation.isPending}
             >
               Cancelar
             </Button>
@@ -564,14 +490,14 @@ export function CrearProductoModal({
               size="sm"
               onClick={handleGuardar}
               className="gradient-brand gap-2"
-              disabled={addItemMutation.isPending || !cotizacionId}
+              disabled={updateItemMutation.isPending}
             >
-              {addItemMutation.isPending ? (
+              {updateItemMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Save className="h-4 w-4" />
               )}
-              Agregar Producto
+              Guardar Cambios
             </Button>
           </div>
         </div>

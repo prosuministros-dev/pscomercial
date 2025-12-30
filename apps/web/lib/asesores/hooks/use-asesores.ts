@@ -20,6 +20,7 @@ export const asesoresKeys = {
   all: ['asesores'] as const,
   lists: () => [...asesoresKeys.all, 'list'] as const,
   activos: () => [...asesoresKeys.all, 'activos'] as const,
+  disponibles: () => [...asesoresKeys.all, 'disponibles'] as const,
   detail: (usuarioId: string) => [...asesoresKeys.all, 'detail', usuarioId] as const,
   estadisticas: () => [...asesoresKeys.all, 'estadisticas'] as const,
   leadsPendientes: (usuarioId: string) =>
@@ -134,6 +135,45 @@ export function useToggleAsesorActivo() {
       toggleAsesorActivoAction(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: asesoresKeys.all });
+    },
+  });
+}
+
+/**
+ * Hook para obtener usuarios disponibles para ser asesores
+ * (usuarios activos que aún no tienen configuración de asesor)
+ */
+export function useUsuariosDisponiblesParaAsesor() {
+  const client = useSupabase();
+
+  return useQuery({
+    queryKey: asesoresKeys.disponibles(),
+    queryFn: async () => {
+      // Obtener IDs de usuarios que ya son asesores
+      const { data: asesoresExistentes } = await client
+        .from('asesores_config')
+        .select('usuario_id');
+
+      const idsAsesores = asesoresExistentes?.map((a) => a.usuario_id) || [];
+
+      // Obtener usuarios activos que no son asesores
+      let query = client
+        .from('usuarios')
+        .select('id, nombre, email, avatar_url')
+        .eq('estado', 'ACTIVO')
+        .order('nombre');
+
+      if (idsAsesores.length > 0) {
+        query = query.not('id', 'in', `(${idsAsesores.join(',')})`);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw new Error(`Error al obtener usuarios: ${error.message}`);
+      }
+
+      return data;
     },
   });
 }

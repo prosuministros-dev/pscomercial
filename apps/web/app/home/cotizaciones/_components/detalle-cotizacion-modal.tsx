@@ -9,6 +9,7 @@ import {
   Edit,
   FileText,
   Loader2,
+  MessageSquare,
   Package,
   Plus,
   Send,
@@ -46,10 +47,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@kit/ui/tabs';
 import {
   useCotizacion,
   useCotizacionItems,
+  useDeleteCotizacionItem,
+  useReorderItems,
   useTrmActual,
 } from '~/lib/cotizaciones';
 
 import { CrearProductoModal } from './crear-producto-modal';
+import { EditarProductoModal } from './editar-producto-modal';
+import { SortableProductList } from './sortable-product-list';
 
 // Tipo para cotización desde la lista (sin items)
 // Usamos un tipo más flexible para aceptar cotizaciones de la DB
@@ -95,10 +100,20 @@ export function DetalleCotizacionModal({
   onGenerarPedido,
 }: DetalleCotizacionModalProps) {
   const [modalProducto, setModalProducto] = useState(false);
+  const [modalEditarProducto, setModalEditarProducto] = useState(false);
+  const [productoEditar, setProductoEditar] = useState<any>(null);
+  const [productoEliminar, setProductoEliminar] = useState<any>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [costoTransporte, setCostoTransporte] = useState(0);
   const [incluirTransporte, setIncluirTransporte] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<'duplicar' | 'pedido' | null>(null);
+
+  // Hook para eliminar item
+  const deleteItemMutation = useDeleteCotizacionItem();
+
+  // Hook para reordenar items
+  const reorderMutation = useReorderItems();
 
   // Obtener cotización completa con items
   const { data: cotizacionCompleta, isLoading: loadingCotizacion } = useCotizacion(
@@ -279,7 +294,7 @@ export function DetalleCotizacionModal({
             defaultValue="general"
             className="flex flex-1 flex-col overflow-hidden"
           >
-            <TabsList className="mx-6 mt-4 grid w-auto flex-shrink-0 grid-cols-3">
+            <TabsList className="mx-6 mt-4 grid w-auto flex-shrink-0 grid-cols-4">
               <TabsTrigger value="general" className="text-xs">
                 <FileText className="mr-1 h-3 w-3" />
                 General
@@ -291,6 +306,10 @@ export function DetalleCotizacionModal({
               <TabsTrigger value="liquidacion" className="text-xs">
                 <DollarSign className="mr-1 h-3 w-3" />
                 Liquidación
+              </TabsTrigger>
+              <TabsTrigger value="observaciones" className="text-xs">
+                <MessageSquare className="mr-1 h-3 w-3" />
+                Notas
               </TabsTrigger>
             </TabsList>
 
@@ -397,71 +416,23 @@ export function DetalleCotizacionModal({
                     </Button>
                   </Card>
                 ) : (
-                  <div className="space-y-2">
-                    {productos.map((producto: any) => (
-                      <Card key={producto.id} className="p-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <div className="mb-1 flex items-center gap-2">
-                              <span className="font-mono text-xs text-muted-foreground">
-                                {producto.producto?.numero_parte || producto.descripcion?.slice(0, 15)}
-                              </span>
-                              {producto.vertical && (
-                                <Badge variant="outline" className="text-[10px]">
-                                  {producto.vertical}
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="truncate text-sm font-medium">
-                              {producto.producto?.nombre || producto.descripcion}
-                            </p>
-                            <div className="mt-2 grid grid-cols-2 gap-2 text-xs md:grid-cols-4">
-                              <div>
-                                <span className="text-muted-foreground">Cantidad:</span>
-                                <span className="ml-1 font-medium">{producto.cantidad}</span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Costo:</span>
-                                <span className="ml-1 font-medium">
-                                  ${(producto.costo_unitario || 0).toLocaleString('es-CO')}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Venta:</span>
-                                <span className="ml-1 font-medium">
-                                  ${(producto.precio_venta_unitario || 0).toLocaleString('es-CO')}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Margen:</span>
-                                <span
-                                  className={`ml-1 font-medium ${
-                                    (producto.margen_porcentaje || 0) >= 25
-                                      ? 'text-green-600'
-                                      : 'text-orange-600'
-                                  }`}
-                                >
-                                  {(producto.margen_porcentaje || 0).toFixed(1)}%
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex flex-shrink-0 items-center gap-1">
-                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                              <Edit className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 text-red-600"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
+                  <SortableProductList
+                    productos={productos}
+                    onEdit={(producto) => {
+                      setProductoEditar(producto);
+                      setModalEditarProducto(true);
+                    }}
+                    onDelete={(producto) => {
+                      setProductoEliminar(producto);
+                      setConfirmDeleteOpen(true);
+                    }}
+                    onReorder={(items) => {
+                      reorderMutation.mutate({
+                        cotizacion_id: cotizacion.id,
+                        items,
+                      });
+                    }}
+                  />
                 )}
               </TabsContent>
 
@@ -555,6 +526,50 @@ export function DetalleCotizacionModal({
                   </div>
                 </Card>
               </TabsContent>
+
+              {/* Tab Observaciones */}
+              <TabsContent value="observaciones" className="mt-0 space-y-4">
+                <Card className="p-4">
+                  <h4 className="mb-3 flex items-center gap-2 text-sm font-medium">
+                    <MessageSquare className="h-4 w-4" />
+                    Notas y Observaciones
+                  </h4>
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      Agrega notas internas sobre esta cotización. Usa @ para mencionar a un usuario.
+                    </p>
+                    <textarea
+                      className="w-full rounded-md border bg-transparent p-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      rows={4}
+                      placeholder="Escribe una observación... (ej: @juan revisar precios)"
+                      defaultValue={datosFinales.condiciones_comerciales || ''}
+                    />
+                    <div className="flex justify-between">
+                      <p className="text-[10px] text-muted-foreground">
+                        Las menciones con @ notificarán al usuario mencionado
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => toast.info('Funcionalidad de @menciones próximamente')}
+                      >
+                        <Send className="mr-1 h-3 w-3" />
+                        Guardar Nota
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Historial de observaciones (placeholder) */}
+                <Card className="p-4">
+                  <h4 className="mb-3 text-sm font-medium">Historial</h4>
+                  <div className="space-y-3 text-sm text-muted-foreground">
+                    <p className="text-center py-4">
+                      El historial de observaciones estará disponible próximamente.
+                    </p>
+                  </div>
+                </Card>
+              </TabsContent>
             </ScrollArea>
           </Tabs>
         </DialogContent>
@@ -570,6 +585,50 @@ export function DetalleCotizacionModal({
           toast.success('Producto agregado');
         }}
       />
+
+      {/* Modal Editar Producto */}
+      <EditarProductoModal
+        open={modalEditarProducto}
+        onOpenChange={setModalEditarProducto}
+        producto={productoEditar}
+        trmActual={trmActual}
+        onUpdated={() => {
+          setProductoEditar(null);
+        }}
+      />
+
+      {/* Confirm Delete Product Dialog */}
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar Producto</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Está seguro que desea eliminar "{productoEliminar?.nombre_producto}"?
+              Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={async () => {
+                if (productoEliminar) {
+                  try {
+                    await deleteItemMutation.mutateAsync({ id: productoEliminar.id });
+                    toast.success('Producto eliminado');
+                    setProductoEliminar(null);
+                  } catch (error) {
+                    toast.error('Error al eliminar el producto');
+                  }
+                }
+                setConfirmDeleteOpen(false);
+              }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Confirm Dialog */}
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>

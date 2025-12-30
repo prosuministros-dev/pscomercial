@@ -1,5 +1,7 @@
 'use client';
 
+import { useMemo } from 'react';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -8,6 +10,7 @@ import {
   Settings,
   Shield,
   User,
+  Users,
 } from 'lucide-react';
 
 import { Button } from '@kit/ui/button';
@@ -28,6 +31,7 @@ import {
 import { cn } from '@kit/ui/utils';
 
 import pathsConfig from '~/config/paths.config';
+import { useUserPermissions } from '~/lib/permisos';
 
 /**
  * SettingsDropdown - Dropdown de configuración accesible desde el icono de engranaje
@@ -39,10 +43,17 @@ import pathsConfig from '~/config/paths.config';
  */
 export function SettingsDropdown() {
   const pathname = usePathname();
+  const { tienePermiso, esGerencia, isLoading } = useUserPermissions();
 
   const isSettingsActive = pathname.startsWith('/home/settings');
   const isAdminActive = pathname.startsWith('/home/admin');
-  const isActive = isSettingsActive || isAdminActive;
+  const isConfigActive = pathname.startsWith('/home/configuracion');
+  const isActive = isSettingsActive || isAdminActive || isConfigActive;
+
+  // Verificar permisos para cada sección
+  const puedeGestionarAsesores = tienePermiso('asesores', 'CREAR');
+  const puedeGestionarUsuarios = tienePermiso('usuarios', 'CREAR');
+  const puedeVerAdmin = puedeGestionarUsuarios || esGerencia;
 
   const settingsItems = [
     {
@@ -59,14 +70,30 @@ export function SettingsDropdown() {
     },
   ];
 
-  const adminItems = [
-    {
-      label: 'Administración',
-      description: 'Panel de administrador',
-      href: pathsConfig.app.admin,
-      icon: Shield,
-    },
-  ];
+  // Items de admin filtrados por permisos
+  const adminItems = useMemo(() => {
+    const items = [];
+
+    if (puedeGestionarAsesores) {
+      items.push({
+        label: 'Asesores',
+        description: 'Gestionar asesores comerciales',
+        href: pathsConfig.app.asesoresConfig,
+        icon: Users,
+      });
+    }
+
+    if (puedeVerAdmin) {
+      items.push({
+        label: 'Administración',
+        description: 'Panel de administrador',
+        href: pathsConfig.app.admin,
+        icon: Shield,
+      });
+    }
+
+    return items;
+  }, [puedeGestionarAsesores, puedeVerAdmin]);
 
   return (
     <DropdownMenu>
@@ -126,32 +153,35 @@ export function SettingsDropdown() {
           );
         })}
 
-        <DropdownMenuSeparator />
+        {adminItems.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            {adminItems.map((item) => {
+              const Icon = item.icon;
+              const isItemActive = pathname === item.href;
 
-        {adminItems.map((item) => {
-          const Icon = item.icon;
-          const isItemActive = pathname === item.href;
-
-          return (
-            <DropdownMenuItem key={item.href} asChild>
-              <Link
-                href={item.href}
-                className={cn(
-                  'flex cursor-pointer items-start gap-3 p-2',
-                  isItemActive && 'bg-accent'
-                )}
-              >
-                <Icon className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                <div className="flex flex-col">
-                  <span className="font-medium">{item.label}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {item.description}
-                  </span>
-                </div>
-              </Link>
-            </DropdownMenuItem>
-          );
-        })}
+              return (
+                <DropdownMenuItem key={item.href} asChild>
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      'flex cursor-pointer items-start gap-3 p-2',
+                      isItemActive && 'bg-accent'
+                    )}
+                  >
+                    <Icon className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    <div className="flex flex-col">
+                      <span className="font-medium">{item.label}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {item.description}
+                      </span>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+              );
+            })}
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

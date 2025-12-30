@@ -40,6 +40,7 @@ import {
 import {
   useCotizaciones,
   useCotizacionStats,
+  useDuplicarCotizacion,
   useTrmActual,
   type CotizacionEstado,
 } from '~/lib/cotizaciones';
@@ -67,6 +68,9 @@ export function CotizacionesView() {
   const { data: stats } = useCotizacionStats();
   const { data: trmData } = useTrmActual();
   const trmActual = trmData?.valor || 4250;
+
+  // Mutation para duplicar
+  const duplicarMutation = useDuplicarCotizacion();
 
   // Filtrar cotizaciones
   const cotizacionesFiltradas = cotizaciones.filter((cotizacion) => {
@@ -183,10 +187,16 @@ export function CotizacionesView() {
     setModalDetalle(true);
   };
 
-  const handleDuplicar = (cotizacion: CotizacionDB) => {
-    toast.success(
-      `Cotización #${cotizacion.numero} duplicada como #${cotizacion.numero + 1}`
-    );
+  const handleDuplicar = async (cotizacion: CotizacionDB) => {
+    try {
+      const result = await duplicarMutation.mutateAsync({ id: cotizacion.id });
+      toast.success(
+        `Cotización #${result.numeroOriginal} duplicada como #${result.numeroNuevo}`
+      );
+    } catch (error) {
+      console.error('Error al duplicar:', error);
+      toast.error('Error al duplicar la cotización');
+    }
   };
 
   const handleGenerarPedido = () => {

@@ -21,6 +21,8 @@ const PathsSchema = z.object({
     whatsappSettings: z.string().min(1),
     admin: z.string().min(1),
     analytics: z.string().min(1),
+    // Configuración
+    asesoresConfig: z.string().min(1),
   }),
 });
 
@@ -45,6 +47,8 @@ const pathsConfig = PathsSchema.parse({
     whatsappSettings: '/home/settings/whatsapp',
     admin: '/home/admin',
     analytics: '/home/analytics',
+    // Configuración
+    asesoresConfig: '/home/configuracion/asesores',
   },
 } satisfies z.infer<typeof PathsSchema>);
 

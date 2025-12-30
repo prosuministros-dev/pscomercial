@@ -24,7 +24,6 @@
       "Bash(git reset:*)",
       "Bash(python -c:*)",
       "Bash(pip install:*)",
-      "Bash(ls -la \"C:\\Users\\freddyrs\\Documents\\TDX Proyectos\\PS\\pscomercial\\Context\\HU\\Excel Referencias\"\"*.md 2>/dev/null || dir \"C:UsersfreddyrsDocumentsTDX ProyectosPSpscomercialContextHUExcel Referencias*.md \")",
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
