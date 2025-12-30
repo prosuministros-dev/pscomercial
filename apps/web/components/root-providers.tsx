@@ -22,6 +22,14 @@ import { ReactQueryProvider } from './react-query-provider';
 
 const captchaSiteKey = authConfig.captchaTokenSiteKey;
 
+const VibeKanbanWebCompanion = dynamic(
+  () =>
+    import('vibe-kanban-web-companion').then(
+      (mod) => mod.VibeKanbanWebCompanion,
+    ),
+  { ssr: false },
+);
+
 const CaptchaTokenSetter = dynamic(async () => {
   if (!captchaSiteKey) {
     return Promise.resolve(() => null);
@@ -66,6 +74,8 @@ export function RootProviders({
         <If condition={featuresFlagConfig.enableVersionUpdater}>
           <VersionUpdater />
         </If>
+
+        <VibeKanbanWebCompanion />
       </I18nProvider>
     </ReactQueryProvider>
   );
