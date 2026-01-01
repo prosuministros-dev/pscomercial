@@ -3,7 +3,7 @@ import { PageBody } from '@kit/ui/page';
 import { CotizacionesView } from './_components/cotizaciones-view';
 
 export const metadata = {
-  title: 'Cotizaciones | PS Comercial',
+  title: 'Cotizaciones | Prosuministros',
 };
 
 export default function CotizacionesPage() {

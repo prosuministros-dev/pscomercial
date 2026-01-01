@@ -1,7 +1,7 @@
 /*
 * shadcn-ui.css
 *
-* PS Comercial - Prosuministros CRM Theme
+* Prosuministros - Prosuministros CRM Theme
 * Paleta: Primary Cyan #00C8CF + Navy #161052
 * Update the below to customize your Shadcn UI CSS Colors.
 * Refer to https://ui.shadcn.com/themes for applying new colors.
@@ -53,7 +53,7 @@
         /* Border Radius - 12px para estilo moderno */
         --radius: 0.75rem;
 
-        /* Charts - Paleta PS Comercial */
+        /* Charts - Paleta Prosuministros */
         --chart-1: #00C8CF;
         --chart-2: #161052;
         --chart-3: #10b981;

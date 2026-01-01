@@ -3,7 +3,7 @@ import { PageBody } from '@kit/ui/page';
 import { ControlFinanciero } from './_components/control-financiero';
 
 export const metadata = {
-  title: 'Financiero | PS Comercial',
+  title: 'Financiero | Prosuministros',
 };
 
 export default function FinancieroPage() {

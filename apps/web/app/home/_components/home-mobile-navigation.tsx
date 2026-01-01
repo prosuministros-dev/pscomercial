@@ -72,7 +72,7 @@ export function HomeMobileNavigation() {
         <SheetContent side="right" className="w-[280px] p-0">
           <SheetHeader className="border-b px-4 py-3">
             <SheetTitle className="gradient-text-brand text-left text-lg font-bold">
-              PS Comercial
+              Prosuministros
             </SheetTitle>
           </SheetHeader>
 

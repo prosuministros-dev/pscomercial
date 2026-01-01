@@ -61,6 +61,10 @@ export function useUserPermissions(): UserPermissionsResult {
         `)
         .eq('usuario_id', userId);
 
+      console.log('[useUserPermissions] userId:', userId);
+      console.log('[useUserPermissions] userRoles:', JSON.stringify(userRoles, null, 2));
+      console.log('[useUserPermissions] error:', rolesError);
+
       if (rolesError) {
         throw new Error(`Error al obtener permisos: ${rolesError.message}`);
       }
@@ -83,6 +87,9 @@ export function useUserPermissions(): UserPermissionsResult {
           });
         }
       });
+
+      console.log('[useUserPermissions] roles:', roles);
+      console.log('[useUserPermissions] permisos:', Array.from(permisosMap.values()));
 
       return {
         permisos: Array.from(permisosMap.values()),

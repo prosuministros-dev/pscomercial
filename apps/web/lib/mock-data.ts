@@ -1,4 +1,4 @@
-// Mock data para sistema Make to Order - PS Comercial
+// Mock data para sistema Make to Order - Prosuministros
 // Basado en el UI Template de Prosuministros
 
 // ============================================
@@ -329,7 +329,7 @@ export const departamentos: Departamento[] = [
 // ============================================
 
 export const configApp = {
-  nombre: 'PS Comercial',
+  nombre: 'Prosuministros',
   tagline: 'Sistema Make to Order',
   descripcion: 'Gestión integral de leads, cotizaciones y pedidos',
   version: '1.0.0',
@@ -402,7 +402,7 @@ export const templatesWhatsApp: TemplateWhatsApp[] = [
     id: 'tpl-1',
     nombre: 'Bienvenida',
     categoria: 'bienvenida',
-    contenido: '¡Hola! Bienvenido a PS Comercial. Tu aliado en hardware, software y servicios IT.\n\n1. Solicitar cotización\n2. Consultar pedido\n3. Asesoría comercial\n4. Otro motivo',
+    contenido: '¡Hola! Bienvenido a Prosuministros. Tu aliado en hardware, software y servicios IT.\n\n1. Solicitar cotización\n2. Consultar pedido\n3. Asesoría comercial\n4. Otro motivo',
     variables: [],
     activo: true,
   },
@@ -454,7 +454,7 @@ export const conversacionesWhatsApp: ConversacionWhatsApp[] = [
         conversacionId: 'conv-1',
         direccion: 'saliente',
         remitente: 'bot',
-        contenido: '¡Hola! Bienvenido a PS Comercial. ¿En qué podemos ayudarte?',
+        contenido: '¡Hola! Bienvenido a Prosuministros. ¿En qué podemos ayudarte?',
         tipo: 'template',
         creadoEn: '2025-12-10T09:20:05Z',
         leido: true,

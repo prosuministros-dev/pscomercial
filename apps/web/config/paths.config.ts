@@ -12,7 +12,7 @@ const PathsSchema = z.object({
   app: z.object({
     home: z.string().min(1),
     profileSettings: z.string().min(1),
-    // PS Comercial - Rutas de módulos
+    // Prosuministros - Rutas de módulos
     leads: z.string().min(1),
     cotizaciones: z.string().min(1),
     pedidos: z.string().min(1),
@@ -38,7 +38,7 @@ const pathsConfig = PathsSchema.parse({
   app: {
     home: '/home',
     profileSettings: '/home/settings',
-    // PS Comercial - Rutas de módulos
+    // Prosuministros - Rutas de módulos
     leads: '/home/leads',
     cotizaciones: '/home/cotizaciones',
     pedidos: '/home/pedidos',

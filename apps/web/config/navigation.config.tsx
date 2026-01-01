@@ -78,7 +78,7 @@ const routes = [
 
 export const navigationConfig = NavigationConfigSchema.parse({
   routes,
-  // Forzar estilo header (navegación superior) como default para PS Comercial
+  // Forzar estilo header (navegación superior) como default para Prosuministros
   style: process.env.NEXT_PUBLIC_NAVIGATION_STYLE ?? 'header',
   sidebarCollapsed: process.env.NEXT_PUBLIC_HOME_SIDEBAR_COLLAPSED,
 });
