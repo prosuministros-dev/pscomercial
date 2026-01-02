@@ -27,9 +27,10 @@ interface LeadsKanbanProps {
   onCrear: () => void;
   onReasignar?: (lead: LeadDB) => void;
   onConvertir?: (lead: LeadDB) => void;
+  puedeCrear?: boolean;
 }
 
-export function LeadsKanban({ leads, onVerDetalle, onCrear, onReasignar, onConvertir }: LeadsKanbanProps) {
+export function LeadsKanban({ leads, onVerDetalle, onCrear, onReasignar, onConvertir, puedeCrear = true }: LeadsKanbanProps) {
   const [busqueda, setBusqueda] = useState('');
   const [arrastrando, setArrastrando] = useState<string | null>(null);
 
@@ -118,14 +119,16 @@ export function LeadsKanban({ leads, onVerDetalle, onCrear, onReasignar, onConve
             className="h-8 pl-8 text-xs"
           />
         </div>
-        <Button
-          size="sm"
-          onClick={onCrear}
-          className="gradient-brand h-8 gap-1.5"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Crear Lead</span>
-        </Button>
+        {puedeCrear && (
+          <Button
+            size="sm"
+            onClick={onCrear}
+            className="gradient-brand h-8 gap-1.5"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Crear Lead</span>
+          </Button>
+        )}
       </div>
 
       {/* Kanban Board - Responsive */}

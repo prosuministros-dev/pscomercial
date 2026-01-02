@@ -44,6 +44,7 @@ import {
   useRejectLead,
   type LeadEstado,
 } from '~/lib/leads';
+import { useUserPermissions } from '~/lib/permisos';
 
 import { CrearLeadModal } from './crear-lead-modal';
 import { LeadsKanban } from './leads-kanban';
@@ -65,6 +66,12 @@ export function LeadsView() {
   const [modalReasignar, setModalReasignar] = useState(false);
   const [modalCotizacion, setModalCotizacion] = useState(false);
   const [leadSeleccionado, setLeadSeleccionado] = useState<LeadDB | null>(null);
+
+  // Permisos del usuario
+  const { esGerencia, tienePermiso } = useUserPermissions();
+
+  // Solo Gerencia puede crear leads manuales (HU-0001 criterio de aceptación)
+  const puedeCrearLeadManual = esGerencia || tienePermiso('leads', 'CREAR');
 
   // Queries
   const { data: leads = [], isLoading, error } = useLeads({
@@ -186,14 +193,16 @@ export function LeadsView() {
             </p>
           </div>
         </div>
-        <Button
-          size="sm"
-          onClick={() => setModalCrear(true)}
-          className="gradient-brand gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Nuevo Lead</span>
-        </Button>
+        {puedeCrearLeadManual && (
+          <Button
+            size="sm"
+            onClick={() => setModalCrear(true)}
+            className="gradient-brand gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Nuevo Lead</span>
+          </Button>
+        )}
       </div>
 
       {/* Filtros compactos y toggle de vista */}
@@ -485,6 +494,7 @@ export function LeadsView() {
             onCrear={() => setModalCrear(true)}
             onReasignar={handleReasignar}
             onConvertir={handleCrearCotizacion}
+            puedeCrear={puedeCrearLeadManual}
           />
         </Card>
       )}
