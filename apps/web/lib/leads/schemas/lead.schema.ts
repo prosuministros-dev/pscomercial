@@ -32,7 +32,15 @@ export const CreateLeadSchema = z.object({
     .string()
     .min(1, 'El celular es obligatorio')
     .max(20, 'El celular no puede exceder 20 caracteres')
-    .regex(/^\+?[0-9\s-]+$/, 'Formato de celular inválido'),
+    .regex(/^\+?[0-9\s-]+$/, 'Formato de celular inválido')
+    .refine(
+      (val) => {
+        // Extraer solo los dígitos (sin +, espacios ni guiones)
+        const digits = val.replace(/[\s\-+]/g, '');
+        return digits.length === 10;
+      },
+      { message: 'El celular debe tener exactamente 10 dígitos' }
+    ),
   email_contacto: z
     .string()
     .min(1, 'El email es obligatorio')
@@ -56,7 +64,15 @@ export const UpdateLeadSchema = z.object({
   celular_contacto: z
     .string()
     .max(20)
-    .regex(/^\+?[0-9\s-]+$/)
+    .regex(/^\+?[0-9\s-]+$/, 'Formato de celular inválido')
+    .refine(
+      (val) => {
+        if (!val) return true;
+        const digits = val.replace(/[\s\-+]/g, '');
+        return digits.length === 10;
+      },
+      { message: 'El celular debe tener exactamente 10 dígitos' }
+    )
     .optional(),
   email_contacto: z.string().email().max(320).optional(),
   requerimiento: z.string().optional(),

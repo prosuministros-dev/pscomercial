@@ -9,6 +9,7 @@ import {
   createCotizacionAction,
   createCotizacionFromLeadAction,
   deleteCotizacionItemAction,
+  duplicarCotizacionAction,
   reorderItemsAction,
   updateCotizacionAction,
   updateCotizacionItemAction,
@@ -21,6 +22,7 @@ import type {
   CreateCotizacionFromLeadInput,
   CreateCotizacionInput,
   DeleteCotizacionItemInput,
+  DuplicarCotizacionInput,
   ReorderItemsInput,
   UpdateCotizacionInput,
   UpdateCotizacionItemInput,
@@ -277,6 +279,20 @@ export function useReorderItems() {
     mutationFn: (data: ReorderItemsInput) => reorderItemsAction(data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: cotizacionesKeys.items(variables.cotizacion_id) });
+    },
+  });
+}
+
+/**
+ * Hook para duplicar cotización
+ */
+export function useDuplicarCotizacion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: DuplicarCotizacionInput) => duplicarCotizacionAction(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: cotizacionesKeys.all });
     },
   });
 }

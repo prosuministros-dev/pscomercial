@@ -3,7 +3,7 @@ import { PageBody } from '@kit/ui/page';
 import { AdminPanel } from './_components/admin-panel';
 
 export const metadata = {
-  title: 'Administración | PS Comercial',
+  title: 'Administración | Prosuministros',
 };
 
 export default function AdminPage() {

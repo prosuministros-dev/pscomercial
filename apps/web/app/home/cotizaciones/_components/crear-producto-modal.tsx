@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-import { Calculator, Package, Save, X } from 'lucide-react';
+import { Calculator, Loader2, Package, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Badge } from '@kit/ui/badge';
@@ -27,11 +27,14 @@ import {
 } from '@kit/ui/select';
 import { Textarea } from '@kit/ui/textarea';
 
+import { useAddCotizacionItem, useVerticales, type IvaTipo } from '~/lib/cotizaciones';
+
 interface CrearProductoModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated?: (producto: unknown) => void;
+  onCreated?: () => void;
   trmActual: number;
+  cotizacionId?: string;
 }
 
 export function CrearProductoModal({
@@ -39,22 +42,30 @@ export function CrearProductoModal({
   onOpenChange,
   onCreated,
   trmActual,
+  cotizacionId,
 }: CrearProductoModalProps) {
   const [formData, setFormData] = useState({
     numeroParte: '',
     nombre: '',
+    descripcion: '',
     vertical: '',
     marca: '',
-    impuesto: 19,
+    impuesto: 'IVA_19' as IvaTipo,
     costo: 0,
-    moneda: 'COP',
+    moneda: 'COP' as 'COP' | 'USD',
     utilidadPct: 30,
     cantidad: 1,
     proveedorSugerido: '',
-    tiempoEntrega: '',
-    garantia: '',
+    tiempoEntrega: 15,
+    garantia: 12,
     observaciones: '',
   });
+
+  // Hook para agregar item
+  const addItemMutation = useAddCotizacionItem();
+
+  // Hook para cargar verticales
+  const { data: verticales = [] } = useVerticales();
 
   // Cálculos automáticos
   const [calculado, setCalculado] = useState({
@@ -76,6 +87,15 @@ export function CrearProductoModal({
     formData.impuesto,
   ]);
 
+  const getIvaPorcentaje = (tipo: IvaTipo): number => {
+    const map: Record<IvaTipo, number> = {
+      IVA_0: 0,
+      IVA_5: 5,
+      IVA_19: 19,
+    };
+    return map[tipo];
+  };
+
   const calcular = () => {
     // Convertir costo si es USD
     const costoEnCOP =
@@ -87,7 +107,8 @@ export function CrearProductoModal({
     const precioVenta = costoEnCOP * (1 + formData.utilidadPct / 100);
 
     // Calcular IVA
-    const iva = (precioVenta * formData.impuesto) / 100;
+    const ivaPct = getIvaPorcentaje(formData.impuesto);
+    const iva = (precioVenta * ivaPct) / 100;
 
     // Total del item
     const totalItem = (precioVenta + iva) * formData.cantidad;
@@ -108,39 +129,62 @@ export function CrearProductoModal({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleGuardar = () => {
-    if (!formData.numeroParte || !formData.nombre || formData.costo <= 0) {
-      toast.error('Complete los campos obligatorios');
-      return;
-    }
-
-    const producto = {
-      ...formData,
-      ...calculado,
-      id: `prod-${Date.now()}`,
-      creadoEn: new Date().toISOString(),
-    };
-
-    onCreated?.(producto);
-    toast.success('Producto agregado exitosamente');
-    onOpenChange(false);
-
-    // Reset form
+  const resetForm = () => {
     setFormData({
       numeroParte: '',
       nombre: '',
+      descripcion: '',
       vertical: '',
       marca: '',
-      impuesto: 19,
+      impuesto: 'IVA_19',
       costo: 0,
       moneda: 'COP',
       utilidadPct: 30,
       cantidad: 1,
       proveedorSugerido: '',
-      tiempoEntrega: '',
-      garantia: '',
+      tiempoEntrega: 15,
+      garantia: 12,
       observaciones: '',
     });
+  };
+
+  const handleGuardar = async () => {
+    if (!formData.numeroParte || !formData.nombre || !formData.vertical || formData.costo <= 0) {
+      toast.error('Complete los campos obligatorios (Número de parte, Nombre, Vertical y Costo)');
+      return;
+    }
+
+    if (!cotizacionId) {
+      toast.error('No se ha seleccionado una cotización');
+      return;
+    }
+
+    try {
+      await addItemMutation.mutateAsync({
+        cotizacion_id: cotizacionId,
+        vertical_id: formData.vertical || undefined,
+        numero_parte: formData.numeroParte,
+        nombre_producto: formData.nombre,
+        descripcion: formData.descripcion || undefined,
+        observaciones: formData.observaciones || undefined,
+        proveedor_nombre: formData.proveedorSugerido || undefined,
+        tiempo_entrega_dias: formData.tiempoEntrega,
+        garantia_meses: formData.garantia,
+        costo_unitario: formData.costo,
+        moneda_costo: formData.moneda,
+        porcentaje_utilidad: formData.utilidadPct,
+        iva_tipo: formData.impuesto,
+        cantidad: formData.cantidad,
+      });
+
+      toast.success('Producto agregado exitosamente');
+      onCreated?.();
+      onOpenChange(false);
+      resetForm();
+    } catch (error) {
+      console.error('Error al agregar producto:', error);
+      toast.error('Error al agregar el producto');
+    }
   };
 
   return (
@@ -148,29 +192,19 @@ export function CrearProductoModal({
       <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col overflow-hidden p-0">
         {/* Header */}
         <DialogHeader className="flex-shrink-0 border-b border-border px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="gradient-accent rounded-lg p-2">
-                <Package className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <DialogTitle>Agregar Producto</DialogTitle>
-                <DialogDescription className="sr-only">
-                  Formulario para agregar un nuevo producto a la cotización
-                </DialogDescription>
-                <Badge variant="outline" className="mt-1 text-xs">
-                  TRM: ${trmActual.toLocaleString('es-CO')}
-                </Badge>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="gradient-accent rounded-lg p-2">
+              <Package className="h-5 w-5 text-white" />
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              className="h-8 w-8 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <div>
+              <DialogTitle>Agregar Producto</DialogTitle>
+              <DialogDescription className="sr-only">
+                Formulario para agregar un nuevo producto a la cotización
+              </DialogDescription>
+              <Badge variant="outline" className="mt-1 text-xs">
+                TRM: ${trmActual.toLocaleString('es-CO')}
+              </Badge>
+            </div>
           </div>
         </DialogHeader>
 
@@ -195,15 +229,26 @@ export function CrearProductoModal({
                   />
                 </div>
 
-                {/* Vertical/Marca */}
+                {/* Vertical */}
                 <div>
-                  <Label className="text-xs">Vertical / Marca</Label>
-                  <Input
+                  <Label className="text-xs">
+                    Vertical <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
                     value={formData.vertical}
-                    onChange={(e) => handleChange('vertical', e.target.value)}
-                    placeholder="Hardware, Software, etc."
-                    className="mt-1"
-                  />
+                    onValueChange={(value) => handleChange('vertical', value)}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Seleccionar vertical" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {verticales.map((v) => (
+                        <SelectItem key={v.id} value={v.id}>
+                          {v.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Nombre del Producto */}
@@ -215,6 +260,18 @@ export function CrearProductoModal({
                     value={formData.nombre}
                     onChange={(e) => handleChange('nombre', e.target.value)}
                     placeholder="Dell Latitude 5430, Windows 11 Pro, etc."
+                    className="mt-1"
+                  />
+                </div>
+
+                {/* Descripción */}
+                <div className="md:col-span-2">
+                  <Label className="text-xs">Descripción</Label>
+                  <Textarea
+                    value={formData.descripcion}
+                    onChange={(e) => handleChange('descripcion', e.target.value)}
+                    placeholder="Especificaciones técnicas del producto..."
+                    rows={2}
                     className="mt-1"
                   />
                 </div>
@@ -232,20 +289,20 @@ export function CrearProductoModal({
 
                 {/* Impuesto */}
                 <div>
-                  <Label className="text-xs">Impuesto (%)</Label>
+                  <Label className="text-xs">Impuesto</Label>
                   <Select
-                    value={formData.impuesto.toString()}
+                    value={formData.impuesto}
                     onValueChange={(value) =>
-                      handleChange('impuesto', parseInt(value))
+                      handleChange('impuesto', value as IvaTipo)
                     }
                   >
                     <SelectTrigger className="mt-1">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="0">0% - Exento</SelectItem>
-                      <SelectItem value="5">5%</SelectItem>
-                      <SelectItem value="19">19% - IVA</SelectItem>
+                      <SelectItem value="IVA_0">0% - Exento</SelectItem>
+                      <SelectItem value="IVA_5">5%</SelectItem>
+                      <SelectItem value="IVA_19">19% - IVA</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -348,24 +405,28 @@ export function CrearProductoModal({
 
                 {/* Tiempo de Entrega */}
                 <div>
-                  <Label className="text-xs">Tiempo de Entrega</Label>
+                  <Label className="text-xs">Tiempo de Entrega (días)</Label>
                   <Input
+                    type="number"
                     value={formData.tiempoEntrega}
                     onChange={(e) =>
-                      handleChange('tiempoEntrega', e.target.value)
+                      handleChange('tiempoEntrega', parseInt(e.target.value) || 15)
                     }
-                    placeholder="5-7 días hábiles"
+                    placeholder="15"
                     className="mt-1"
                   />
                 </div>
 
                 {/* Garantía */}
-                <div className="md:col-span-2">
-                  <Label className="text-xs">Garantía</Label>
+                <div>
+                  <Label className="text-xs">Garantía (meses)</Label>
                   <Input
+                    type="number"
                     value={formData.garantia}
-                    onChange={(e) => handleChange('garantia', e.target.value)}
-                    placeholder="12 meses, 3 años, etc."
+                    onChange={(e) =>
+                      handleChange('garantia', parseInt(e.target.value) || 12)
+                    }
+                    placeholder="12"
                     className="mt-1"
                   />
                 </div>
@@ -391,7 +452,7 @@ export function CrearProductoModal({
               <Card className="sticky top-4 p-4">
                 <div className="mb-4 flex items-center gap-2">
                   <Calculator className="h-4 w-4 text-primary" />
-                  <h4>Cálculo Automático</h4>
+                  <h4 className="text-sm font-medium">Cálculo Automático</h4>
                 </div>
 
                 <div className="space-y-3 text-sm">
@@ -433,7 +494,7 @@ export function CrearProductoModal({
 
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">
-                      IVA ({formData.impuesto}%):
+                      IVA ({getIvaPorcentaje(formData.impuesto)}%):
                     </span>
                     <span className="font-medium">
                       $
@@ -495,6 +556,7 @@ export function CrearProductoModal({
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
+              disabled={addItemMutation.isPending}
             >
               Cancelar
             </Button>
@@ -502,8 +564,13 @@ export function CrearProductoModal({
               size="sm"
               onClick={handleGuardar}
               className="gradient-brand gap-2"
+              disabled={addItemMutation.isPending || !cotizacionId}
             >
-              <Save className="h-4 w-4" />
+              {addItemMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
               Agregar Producto
             </Button>
           </div>

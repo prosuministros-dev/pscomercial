@@ -24,14 +24,19 @@ import {
 import { Input } from '@kit/ui/input';
 import { ScrollArea } from '@kit/ui/scroll-area';
 
-import { cotizaciones, type Cotizacion } from '~/lib/mock-data';
+import { useCotizaciones } from '~/lib/cotizaciones';
+
+// Tipo para cotización desde la DB
+type CotizacionDB = NonNullable<ReturnType<typeof useCotizaciones>['data']>[number];
 
 interface CotizacionesKanbanProps {
-  onVerDetalle: (cotizacion: Cotizacion) => void;
+  cotizaciones: CotizacionDB[];
+  onVerDetalle: (cotizacion: CotizacionDB) => void;
   onCrear: () => void;
 }
 
 export function CotizacionesKanban({
+  cotizaciones,
   onVerDetalle,
   onCrear,
 }: CotizacionesKanbanProps) {
@@ -40,16 +45,12 @@ export function CotizacionesKanban({
 
   // Columnas del Kanban según estados del sistema
   const columnas = [
-    { id: 'borrador', titulo: 'Borrador', color: 'border-gray-500' },
-    { id: 'enviada', titulo: 'Enviada', color: 'border-blue-500' },
-    { id: 'aprobada', titulo: 'Aprobada', color: 'border-green-500' },
-    { id: 'rechazada', titulo: 'Rechazada', color: 'border-red-500' },
-    { id: 'vencida', titulo: 'Vencida', color: 'border-orange-500' },
-    // Estados legacy (compatibilidad)
-    { id: '40', titulo: 'Creación de Oferta', color: 'border-blue-500' },
-    { id: '60', titulo: 'Negociación', color: 'border-purple-500' },
-    { id: '70', titulo: 'Riesgo', color: 'border-orange-500' },
-    { id: '80', titulo: 'Pendiente OC', color: 'border-green-500' },
+    { id: 'BORRADOR', titulo: 'Borrador', color: 'border-gray-500' },
+    { id: 'CREACION_OFERTA', titulo: 'Creación Oferta', color: 'border-blue-500' },
+    { id: 'NEGOCIACION', titulo: 'Negociación', color: 'border-purple-500' },
+    { id: 'RIESGO', titulo: 'Riesgo', color: 'border-orange-500' },
+    { id: 'PENDIENTE_OC', titulo: 'Pendiente OC', color: 'border-green-500' },
+    { id: 'GANADA', titulo: 'Ganada', color: 'border-emerald-500' },
   ];
 
   // Filtrar cotizaciones
@@ -57,10 +58,10 @@ export function CotizacionesKanban({
     const matchBusqueda =
       busqueda === '' ||
       cot.numero.toString().includes(busqueda) ||
-      cot.razonSocial.toLowerCase().includes(busqueda.toLowerCase());
+      cot.razon_social.toLowerCase().includes(busqueda.toLowerCase());
 
     if (busqueda) return matchBusqueda;
-    return matchBusqueda && cot.estado !== 'perdida';
+    return matchBusqueda && cot.estado !== 'PERDIDA';
   });
 
   const handleDragStart = (e: React.DragEvent, cotizacionId: string) => {
@@ -79,9 +80,7 @@ export function CotizacionesKanban({
 
     const cotizacion = cotizaciones.find((c) => c.id === arrastrando);
     if (cotizacion && cotizacion.estado !== nuevoEstado) {
-      toast.success(
-        `Cotización #${cotizacion.numero} movida a ${columnas.find((c) => c.id === nuevoEstado)?.titulo}`
-      );
+      toast.info('Funcionalidad de arrastrar próximamente');
     }
     setArrastrando(null);
   };
@@ -92,6 +91,16 @@ export function CotizacionesKanban({
 
   const getCotizacionesPorEstado = (estadoId: string) => {
     return cotizacionesFiltradas.filter((cot) => cot.estado === estadoId);
+  };
+
+  const getInitials = (asesor: any) => {
+    if (!asesor?.nombre) return '?';
+    return asesor.nombre
+      .split(' ')
+      .map((n: string) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
@@ -154,7 +163,7 @@ export function CotizacionesKanban({
                           className="group relative cursor-pointer border-l-2 bg-card/50 p-2.5 backdrop-blur-sm transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
                           style={{
                             borderLeftColor:
-                              cotizacion.margenPct < 25
+                              (cotizacion.margen_porcentaje || 0) < 10
                                 ? 'rgb(234, 88, 12)'
                                 : 'rgb(34, 197, 94)',
                           }}
@@ -164,10 +173,9 @@ export function CotizacionesKanban({
                           <div className="mb-2 flex items-center justify-between">
                             <div className="flex items-center gap-1">
                               <span className="font-mono text-[9px] text-muted-foreground/60">
-                                #{cotizacion.numero.toString().padStart(4, '0')}
+                                #{cotizacion.numero.toString().padStart(5, '0')}
                               </span>
-                              {(cotizacion.clienteBloqueado ||
-                                cotizacion.aprobacionGerenciaRequerida) && (
+                              {cotizacion.requiere_aprobacion_margen && (
                                 <AlertTriangle className="h-2.5 w-2.5 text-orange-500" />
                               )}
                             </div>
@@ -204,19 +212,24 @@ export function CotizacionesKanban({
                             </DropdownMenu>
                           </div>
 
+                          {/* Cliente */}
+                          <p className="mb-2 line-clamp-1 text-xs font-medium">
+                            {cotizacion.razon_social}
+                          </p>
+
                           {/* Monto y margen en misma línea */}
                           <div className="mb-2 flex items-baseline justify-between">
                             <span className="text-base font-semibold">
-                              ${(cotizacion.totalVenta / 1000000).toFixed(1)}M
+                              ${((cotizacion.total_venta || 0) / 1000000).toFixed(1)}M
                             </span>
                             <span
                               className={`text-xs font-semibold ${
-                                cotizacion.margenPct < 25
+                                (cotizacion.margen_porcentaje || 0) < 10
                                   ? 'text-orange-600 dark:text-orange-400'
                                   : 'text-green-600 dark:text-green-400'
                               }`}
                             >
-                              {cotizacion.margenPct}%
+                              {(cotizacion.margen_porcentaje || 0).toFixed(1)}%
                             </span>
                           </div>
 
@@ -224,17 +237,14 @@ export function CotizacionesKanban({
                           <div className="flex items-center justify-between">
                             <span className="text-[9px] text-muted-foreground/60">
                               {new Date(
-                                cotizacion.fechaCotizacion
+                                cotizacion.fecha_cotizacion
                               ).toLocaleDateString('es-CO', {
                                 day: 'numeric',
                                 month: 'short',
                               })}
                             </span>
                             <div className="gradient-accent flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-semibold text-white">
-                              {cotizacion.creadoPor
-                                .split(' ')
-                                .map((n) => n[0])
-                                .join('')}
+                              {getInitials(cotizacion.asesor)}
                             </div>
                           </div>
                         </Card>

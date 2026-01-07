@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 import { FileText, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -27,38 +28,48 @@ import {
 import { Separator } from '@kit/ui/separator';
 import { Textarea } from '@kit/ui/textarea';
 
-import { usuarios, type Lead } from '~/lib/mock-data';
+import { useCreateCotizacionFromLead, useTrmActual } from '~/lib/cotizaciones';
+
+// Tipo para el lead desde la base de datos
+interface LeadOrigen {
+  id: string;
+  numero: number;
+  razon_social: string;
+  nit: string;
+  nombre_contacto: string;
+  celular_contacto: string;
+  email_contacto: string;
+  requerimiento: string;
+}
 
 interface CrearCotizacionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated?: (cotizacion: unknown) => void;
-  leadSeleccionado?: Lead;
+  onCreated?: (cotizacionId: string) => void;
+  leadOrigen?: LeadOrigen;
 }
 
 export function CrearCotizacionModal({
   open,
   onOpenChange,
   onCreated,
-  leadSeleccionado,
+  leadOrigen,
 }: CrearCotizacionModalProps) {
+  const router = useRouter();
   const [paso, setPaso] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // TRM actual del día
-  const trmActual = 4250;
+  // Hooks
+  const { data: trmData } = useTrmActual();
+  const createCotizacion = useCreateCotizacionFromLead();
 
-  // Estado del formulario
+  const trmActual = trmData?.valor || 4250;
+
+  // Estado del formulario - se pre-llena con datos del lead
   const [formData, setFormData] = useState({
-    numero: 30002, // autogenerado
     fecha: new Date().toISOString().split('T')[0],
-    leadId: leadSeleccionado?.id || '',
-    razonSocial: '',
-    formaPago: 'Anticipado',
-    contacto: leadSeleccionado?.nombreContacto || '',
-    celular: leadSeleccionado?.telefono || '',
-    correo: leadSeleccionado?.email || '',
+    formaPago: 'ANTICIPADO',
     asunto: '',
-    asesor: 'Carlos Pérez',
     porcentajeInteres: 0,
     vigenciaDias: 15,
     condicionesComerciales: '',
@@ -70,38 +81,57 @@ export function CrearCotizacionModal({
     linksAdicionales: '',
   });
 
+  // Pre-llenar asunto cuando cambia el lead
+  useEffect(() => {
+    if (leadOrigen) {
+      setFormData(prev => ({
+        ...prev,
+        asunto: `Cotización - ${leadOrigen.requerimiento?.substring(0, 100) || ''}`,
+      }));
+    }
+  }, [leadOrigen]);
+
   const handleChange = (field: string, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleGuardar = () => {
-    // Validar campos obligatorios
-    if (
-      !formData.razonSocial ||
-      !formData.contacto ||
-      !formData.correo ||
-      !formData.asunto
-    ) {
-      toast.error('Complete los campos obligatorios');
+  const handleGuardar = async () => {
+    if (!leadOrigen) {
+      toast.error('No hay lead seleccionado');
       return;
     }
 
-    const cotizacion = {
-      ...formData,
-      trm: trmActual,
-      items: [],
-      totalCosto: 0,
-      totalVenta: 0,
-      margenPct: 0,
-      estado: 'borrador',
-      creadoEn: new Date().toISOString(),
-      creadoPor: formData.asesor,
-    };
+    // Validar campos obligatorios
+    if (!formData.asunto) {
+      toast.error('El asunto es obligatorio');
+      return;
+    }
 
-    onCreated?.(cotizacion);
-    toast.success(`Cotización #${formData.numero} creada exitosamente`);
-    onOpenChange(false);
-    setPaso(1);
+    setIsSubmitting(true);
+
+    createCotizacion.mutate(
+      { lead_id: leadOrigen.id },
+      {
+        onSuccess: (result) => {
+          toast.success(`Cotización creada desde Lead #${leadOrigen.numero}`, {
+            action: {
+              label: 'Ver cotización',
+              onClick: () => router.push('/home/cotizaciones'),
+            },
+          });
+          onCreated?.(result.cotizacion_id);
+          onOpenChange(false);
+          setPaso(1);
+          setIsSubmitting(false);
+          // Navegar a cotizaciones
+          router.push('/home/cotizaciones');
+        },
+        onError: (error) => {
+          toast.error(`Error: ${error.message}`);
+          setIsSubmitting(false);
+        },
+      }
+    );
   };
 
   return (
@@ -115,7 +145,7 @@ export function CrearCotizacionModal({
                 <FileText className="h-5 w-5 text-white" />
               </div>
               <div>
-                <DialogTitle>Nueva Cotización #{formData.numero}</DialogTitle>
+                <DialogTitle>Nueva Cotización desde Lead</DialogTitle>
                 <DialogDescription className="sr-only">
                   Formulario para crear una nueva cotización con información del
                   cliente y productos
@@ -146,34 +176,38 @@ export function CrearCotizacionModal({
           {paso === 1 && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {/* Lead asociado */}
-                {leadSeleccionado && (
-                  <div className="rounded-lg bg-secondary/50 p-3 md:col-span-2">
-                    <p className="mb-1 text-xs text-muted-foreground">
-                      Lead Asociado
+                {/* Datos del Lead (read-only) */}
+                {leadOrigen && (
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 md:col-span-2">
+                    <p className="mb-3 text-xs font-medium text-primary">
+                      Datos del Lead #{leadOrigen.numero}
                     </p>
-                    <p className="text-sm font-medium">
-                      #{leadSeleccionado.numero} -{' '}
-                      {leadSeleccionado.razonSocial}
-                    </p>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-xs text-muted-foreground">Razón Social</span>
+                        <p className="font-medium">{leadOrigen.razon_social}</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">NIT</span>
+                        <p className="font-medium">{leadOrigen.nit}</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">Contacto</span>
+                        <p className="font-medium">{leadOrigen.nombre_contacto}</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">Celular</span>
+                        <p className="font-medium">{leadOrigen.celular_contacto}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-xs text-muted-foreground">Email</span>
+                        <p className="font-medium">{leadOrigen.email_contacto}</p>
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                {/* Razón Social */}
-                <div className="md:col-span-2">
-                  <Label className="text-xs">
-                    Razón Social <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    value={formData.razonSocial}
-                    onChange={(e) => handleChange('razonSocial', e.target.value)}
-                    placeholder="Nombre completo de la empresa"
-                    className="mt-1"
-                  />
-                  <p className="mt-1 text-[10px] text-muted-foreground">
-                    Diligenciada por financiera, por defecto tipo anticipado
-                  </p>
-                </div>
+                <Separator className="md:col-span-2" />
 
                 {/* Forma de Pago */}
                 <div>
@@ -186,59 +220,25 @@ export function CrearCotizacionModal({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Anticipado">Anticipado</SelectItem>
-                      <SelectItem value="Crédito 30">Crédito 30 días</SelectItem>
-                      <SelectItem value="Crédito 60">Crédito 60 días</SelectItem>
-                      <SelectItem value="Crédito 90">Crédito 90 días</SelectItem>
+                      <SelectItem value="ANTICIPADO">Anticipado</SelectItem>
+                      <SelectItem value="CONTRA_ENTREGA">Contra Entrega</SelectItem>
+                      <SelectItem value="CREDITO_8">Crédito 8 días</SelectItem>
+                      <SelectItem value="CREDITO_15">Crédito 15 días</SelectItem>
+                      <SelectItem value="CREDITO_30">Crédito 30 días</SelectItem>
+                      <SelectItem value="CREDITO_45">Crédito 45 días</SelectItem>
+                      <SelectItem value="CREDITO_60">Crédito 60 días</SelectItem>
+                      <SelectItem value="CREDITO_90">Crédito 90 días</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Fecha */}
                 <div>
-                  <Label className="text-xs">Fecha</Label>
+                  <Label className="text-xs">Fecha de Cotización</Label>
                   <Input
                     type="date"
                     value={formData.fecha}
                     onChange={(e) => handleChange('fecha', e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-
-                {/* Contacto */}
-                <div>
-                  <Label className="text-xs">
-                    Contacto <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    value={formData.contacto}
-                    onChange={(e) => handleChange('contacto', e.target.value)}
-                    placeholder="Nombre del contacto"
-                    className="mt-1"
-                  />
-                </div>
-
-                {/* Celular */}
-                <div>
-                  <Label className="text-xs">Celular</Label>
-                  <Input
-                    value={formData.celular}
-                    onChange={(e) => handleChange('celular', e.target.value)}
-                    placeholder="+57 300 000 0000"
-                    className="mt-1"
-                  />
-                </div>
-
-                {/* Correo */}
-                <div className="md:col-span-2">
-                  <Label className="text-xs">
-                    Correo Electrónico <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    type="email"
-                    value={formData.correo}
-                    onChange={(e) => handleChange('correo', e.target.value)}
-                    placeholder="contacto@empresa.com"
                     className="mt-1"
                   />
                 </div>
@@ -256,31 +256,6 @@ export function CrearCotizacionModal({
                   />
                 </div>
 
-                {/* Asesor */}
-                <div>
-                  <Label className="text-xs">Asesor</Label>
-                  <Select
-                    value={formData.asesor}
-                    onValueChange={(value) => handleChange('asesor', value)}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {usuarios
-                        .filter(
-                          (u) =>
-                            u.rol === 'Comercial' || u.rol === 'Administración'
-                        )
-                        .map((u) => (
-                          <SelectItem key={u.id} value={u.nombre}>
-                            {u.nombre}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 {/* Vigencia */}
                 <div>
                   <Label className="text-xs">Vigencia (días)</Label>
@@ -296,6 +271,32 @@ export function CrearCotizacionModal({
                     className="mt-1"
                   />
                 </div>
+
+                {/* Porcentaje de Interés */}
+                <div>
+                  <Label className="text-xs">% Interés</Label>
+                  <Input
+                    type="number"
+                    value={formData.porcentajeInteres}
+                    onChange={(e) =>
+                      handleChange(
+                        'porcentajeInteres',
+                        parseInt(e.target.value) || 0
+                      )
+                    }
+                    className="mt-1"
+                  />
+                </div>
+
+                {/* Requerimiento del Lead */}
+                {leadOrigen && (
+                  <div className="md:col-span-2">
+                    <Label className="text-xs">Requerimiento Original</Label>
+                    <p className="mt-1 rounded-md bg-muted/50 p-3 text-sm text-muted-foreground">
+                      {leadOrigen.requerimiento}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}

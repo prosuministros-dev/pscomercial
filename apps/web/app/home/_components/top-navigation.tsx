@@ -19,7 +19,7 @@ import { AppLogo } from '~/components/app-logo';
 import { NotificacionesPanel } from '~/components/notificaciones-panel';
 import { ProfileAccountDropdownContainer } from '~/components/personal-account-dropdown-container';
 import { navigationConfig } from '~/config/navigation.config';
-import { notificacionesExtendidas } from '~/lib/mock-data';
+import { useNotificacionesCount } from '~/lib/notificaciones';
 import { SettingsDropdown } from './settings-dropdown';
 
 /**
@@ -30,6 +30,7 @@ import { SettingsDropdown } from './settings-dropdown';
  */
 export function TopNavigation() {
   const [notificacionesOpen, setNotificacionesOpen] = useState(false);
+  const { data: notificacionesCount = 0 } = useNotificacionesCount();
 
   // Extraer rutas planas de la configuración
   const routes = navigationConfig.routes.reduce<
@@ -81,7 +82,7 @@ export function TopNavigation() {
       <div className="flex items-center space-x-2">
         {/* Botón de Notificaciones */}
         <NotificationsButton
-          unreadCount={notificacionesExtendidas.filter((n) => !n.leida).length}
+          unreadCount={notificacionesCount}
           onClick={() => setNotificacionesOpen(true)}
         />
 

@@ -11,6 +11,7 @@ import {
   CreateCotizacionFromLeadSchema,
   CreateCotizacionSchema,
   DeleteCotizacionItemSchema,
+  DuplicarCotizacionSchema,
   ReorderItemsSchema,
   UpdateCotizacionItemSchema,
   UpdateCotizacionSchema,
@@ -261,40 +262,65 @@ export const addCotizacionItemAction = enhanceAction(
 
     const nuevoOrden = data.orden ?? ((maxOrden?.orden || 0) + 1);
 
+    // Construir objeto de inserción base
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const insertData: any = {
+      cotizacion_id: data.cotizacion_id,
+      producto_id: data.producto_id,
+      numero_parte: data.numero_parte,
+      nombre_producto: data.nombre_producto,
+      descripcion: data.descripcion,
+      observaciones: data.observaciones,
+      proveedor_id: data.proveedor_id,
+      proveedor_nombre: data.proveedor_nombre,
+      tiempo_entrega_dias: data.tiempo_entrega_dias,
+      garantia_meses: data.garantia_meses,
+      costo_unitario: data.costo_unitario,
+      moneda_costo: data.moneda_costo,
+      costo_unitario_cop: costoUnitarioCop,
+      porcentaje_utilidad: data.porcentaje_utilidad,
+      precio_unitario: precioUnitario,
+      iva_tipo: data.iva_tipo,
+      iva_porcentaje: ivaPorcentaje,
+      iva_valor: ivaValor,
+      cantidad: data.cantidad,
+      subtotal_costo: subtotalCosto,
+      subtotal_venta: subtotalVenta,
+      total_iva: ivaValor,
+      total_item: totalItem,
+      utilidad_item: utilidadItem,
+      margen_item: margenItem,
+      orden: nuevoOrden,
+    };
+
+    // Agregar vertical_id solo si se proporciona (requiere migración 20241220000011)
+    if (data.vertical_id) {
+      insertData.vertical_id = data.vertical_id;
+    }
+
     const { data: item, error } = await client
       .from('cotizacion_items')
-      .insert({
-        cotizacion_id: data.cotizacion_id,
-        producto_id: data.producto_id,
-        numero_parte: data.numero_parte,
-        nombre_producto: data.nombre_producto,
-        descripcion: data.descripcion,
-        observaciones: data.observaciones,
-        proveedor_id: data.proveedor_id,
-        proveedor_nombre: data.proveedor_nombre,
-        tiempo_entrega_dias: data.tiempo_entrega_dias,
-        garantia_meses: data.garantia_meses,
-        costo_unitario: data.costo_unitario,
-        moneda_costo: data.moneda_costo,
-        costo_unitario_cop: costoUnitarioCop,
-        porcentaje_utilidad: data.porcentaje_utilidad,
-        precio_unitario: precioUnitario,
-        iva_tipo: data.iva_tipo,
-        iva_porcentaje: ivaPorcentaje,
-        iva_valor: ivaValor,
-        cantidad: data.cantidad,
-        subtotal_costo: subtotalCosto,
-        subtotal_venta: subtotalVenta,
-        total_iva: ivaValor,
-        total_item: totalItem,
-        utilidad_item: utilidadItem,
-        margen_item: margenItem,
-        orden: nuevoOrden,
-      })
+      .insert(insertData)
       .select()
       .single();
 
     if (error) {
+      // Si el error es por columna vertical_id no existente, reintentar sin ella
+      if (error.message.includes('vertical_id')) {
+        delete insertData.vertical_id;
+        const { data: itemRetry, error: errorRetry } = await client
+          .from('cotizacion_items')
+          .insert(insertData)
+          .select()
+          .single();
+
+        if (errorRetry) {
+          throw new Error(`Error al agregar item: ${errorRetry.message}`);
+        }
+
+        revalidatePath('/home/cotizaciones');
+        return { success: true, item: itemRetry };
+      }
       throw new Error(`Error al agregar item: ${error.message}`);
     }
 
@@ -427,5 +453,112 @@ export const reorderItemsAction = enhanceAction(
   },
   {
     schema: ReorderItemsSchema,
+  }
+);
+
+/**
+ * Duplicar cotización (crea una copia con nuevo número)
+ */
+export const duplicarCotizacionAction = enhanceAction(
+  async (data, user) => {
+    const client = getSupabaseServerClient();
+
+    // Obtener cotización original con sus items
+    const { data: original, error: errorOriginal } = await client
+      .from('cotizaciones')
+      .select('*')
+      .eq('id', data.id)
+      .single();
+
+    if (errorOriginal || !original) {
+      throw new Error('No se encontró la cotización a duplicar');
+    }
+
+    // Obtener items de la cotización original
+    const { data: itemsOriginales } = await client
+      .from('cotizacion_items')
+      .select('*')
+      .eq('cotizacion_id', data.id)
+      .order('orden', { ascending: true });
+
+    // Obtener TRM actual
+    const { data: trmData } = await client
+      .from('trm_historico')
+      .select('valor')
+      .order('fecha', { ascending: false })
+      .limit(1)
+      .single();
+
+    const trm = trmData?.valor || 4250;
+
+    // Crear nueva cotización (sin id, numero se autogenera)
+    const {
+      id: _id,
+      numero: _numero,
+      creado_en: _creado_en,
+      modificado_en: _modificado_en,
+      enviado_en: _enviado_en,
+      cerrado_en: _cerrado_en,
+      aprobado_en: _aprobado_en,
+      ...datosParaCopiar
+    } = original;
+
+    const { data: nuevaCotizacion, error: errorNueva } = await client
+      .from('cotizaciones')
+      .insert({
+        ...datosParaCopiar,
+        estado: 'BORRADOR',
+        fecha_cotizacion: new Date().toISOString().split('T')[0],
+        trm_valor: trm,
+        trm_fecha: new Date().toISOString().split('T')[0],
+        creado_por: user.sub,
+        // Mantener el asesor original (ya viene en datosParaCopiar)
+      })
+      .select()
+      .single();
+
+    if (errorNueva || !nuevaCotizacion) {
+      throw new Error(`Error al duplicar cotización: ${errorNueva?.message}`);
+    }
+
+    // Duplicar items si existen
+    if (itemsOriginales && itemsOriginales.length > 0) {
+      const itemsParaInsertar = itemsOriginales.map((item) => {
+        const {
+          id: _itemId,
+          cotizacion_id: _cotId,
+          creado_en: _itemCreado,
+          modificado_en: _itemModificado,
+          ...itemData
+        } = item;
+        return {
+          ...itemData,
+          cotizacion_id: nuevaCotizacion.id,
+        };
+      });
+
+      await client.from('cotizacion_items').insert(itemsParaInsertar);
+    }
+
+    // Registrar en historial
+    await client.from('cotizacion_historial').insert({
+      cotizacion_id: nuevaCotizacion.id,
+      usuario_id: user.sub,
+      accion: 'CREAR',
+      estado_nuevo: 'BORRADOR',
+      descripcion: `Duplicada desde cotización #${original.numero}`,
+    });
+
+    revalidatePath('/home/cotizaciones');
+
+    return {
+      success: true,
+      cotizacion: nuevaCotizacion,
+      numeroOriginal: original.numero,
+      numeroNuevo: nuevaCotizacion.numero,
+    };
+  },
+  {
+    schema: DuplicarCotizacionSchema,
   }
 );

@@ -21,7 +21,7 @@ import { HomeMobileNavigation } from './_components/home-mobile-navigation';
 import { HomeSidebar } from './_components/home-sidebar';
 
 /**
- * HomeLayout - Layout principal de PS Comercial
+ * HomeLayout - Layout principal de Prosuministros
  *
  * Por defecto usa navegación superior (header) estilo Prosuministros CRM.
  * El sidebar se mantiene como opción pero no es el default.
@@ -29,7 +29,7 @@ import { HomeSidebar } from './_components/home-sidebar';
 function HomeLayout({ children }: React.PropsWithChildren) {
   const style = use(getLayoutStyle());
 
-  // PS Comercial: Forzar header como default
+  // Prosuministros: Forzar header como default
   if (style === 'sidebar') {
     return <SidebarLayout>{children}</SidebarLayout>;
   }
@@ -64,7 +64,7 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
 }
 
 /**
- * HeaderLayout - Layout con navegación superior (default PS Comercial)
+ * HeaderLayout - Layout con navegación superior (default Prosuministros)
  *
  * Características:
  * - Navegación fija en la parte superior
@@ -102,7 +102,7 @@ function MobileNavigation() {
 /**
  * getLayoutStyle - Obtiene el estilo de layout desde cookie o config
  *
- * PS Comercial siempre usa 'header' por defecto
+ * Prosuministros siempre usa 'header' por defecto
  */
 async function getLayoutStyle() {
   const cookieStore = await cookies();

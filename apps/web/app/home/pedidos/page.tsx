@@ -3,7 +3,7 @@ import { PageBody } from '@kit/ui/page';
 import { PedidosView } from './_components/pedidos-view';
 
 export const metadata = {
-  title: 'Pedidos | PS Comercial',
+  title: 'Pedidos | Prosuministros',
 };
 
 export default function PedidosPage() {

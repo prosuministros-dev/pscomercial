@@ -43,10 +43,16 @@ Este directorio contiene la configuración de agentes Claude especializados para
 
 ## Datos del Proyecto
 
-### Supabase
+### Supabase - Producción
 - **Project ID**: `zsauumglbhindsplazpk`
 - **URL**: `https://zsauumglbhindsplazpk.supabase.co`
 - **Publishable Key**: `sb_publishable_g4Zfm_uc8TuykpxWdaFCmw_MMY2geKT`
+
+### Supabase - Desarrollo
+- **Project ID**: `hxqzzncubasczoiyqvka`
+- **URL**: `https://hxqzzncubasczoiyqvka.supabase.co`
+- **Publishable Key**: `sb_publishable_OEzon6CXPoBUwuI6uGL7hg_hMoGg9Ou`
+- **Service Role**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh4cXp6bmN1YmFzY3pvaXlxdmthIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NjAwOTU1NCwiZXhwIjoyMDgxNTg1NTU0fQ.cijZKuD4FgTQqr9xwwABBGFZ_i-wW-NVtpFGyaid7Eo`
 
 ### Repositorio Local
 - **Path**: `c:\Users\freddyrs\Documents\TDX Proyectos\PS\pscomercial`

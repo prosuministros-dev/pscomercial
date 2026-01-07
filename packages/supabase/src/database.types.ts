@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -11,6 +11,31 @@ export type Database = {
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.1"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -130,6 +155,8 @@ export type Database = {
           bloqueado: boolean | null
           celular_contacto: string | null
           ciudad: string | null
+          comercial_asignado_id: string | null
+          correo_facturacion: string | null
           creado_en: string | null
           creado_por: string | null
           cupo_credito: number | null
@@ -146,12 +173,15 @@ export type Database = {
           nit: string
           nombre_contacto: string | null
           razon_social: string
+          telefono_principal: string | null
         }
         Insert: {
           activo?: boolean | null
           bloqueado?: boolean | null
           celular_contacto?: string | null
           ciudad?: string | null
+          comercial_asignado_id?: string | null
+          correo_facturacion?: string | null
           creado_en?: string | null
           creado_por?: string | null
           cupo_credito?: number | null
@@ -168,12 +198,15 @@ export type Database = {
           nit: string
           nombre_contacto?: string | null
           razon_social: string
+          telefono_principal?: string | null
         }
         Update: {
           activo?: boolean | null
           bloqueado?: boolean | null
           celular_contacto?: string | null
           ciudad?: string | null
+          comercial_asignado_id?: string | null
+          correo_facturacion?: string | null
           creado_en?: string | null
           creado_por?: string | null
           cupo_credito?: number | null
@@ -190,8 +223,17 @@ export type Database = {
           nit?: string
           nombre_contacto?: string | null
           razon_social?: string
+          telefono_principal?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clientes_comercial_asignado_id_fkey"
+            columns: ["comercial_asignado_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cotizacion_adjuntos: {
         Row: {
@@ -315,6 +357,7 @@ export type Database = {
           total_item: number
           total_iva: number
           utilidad_item: number
+          vertical_id: string | null
         }
         Insert: {
           cantidad?: number
@@ -346,6 +389,7 @@ export type Database = {
           total_item: number
           total_iva: number
           utilidad_item: number
+          vertical_id?: string | null
         }
         Update: {
           cantidad?: number
@@ -377,6 +421,7 @@ export type Database = {
           total_item?: number
           total_iva?: number
           utilidad_item?: number
+          vertical_id?: string | null
         }
         Relationships: [
           {
@@ -398,6 +443,48 @@ export type Database = {
             columns: ["proveedor_id"]
             isOneToOne: false
             referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizacion_items_vertical_id_fkey"
+            columns: ["vertical_id"]
+            isOneToOne: false
+            referencedRelation: "verticales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cotizacion_observaciones: {
+        Row: {
+          cotizacion_id: string
+          creado_en: string | null
+          id: string
+          menciones: string[] | null
+          texto: string
+          usuario_id: string
+        }
+        Insert: {
+          cotizacion_id: string
+          creado_en?: string | null
+          id?: string
+          menciones?: string[] | null
+          texto: string
+          usuario_id: string
+        }
+        Update: {
+          cotizacion_id?: string
+          creado_en?: string | null
+          id?: string
+          menciones?: string[] | null
+          texto?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotizacion_observaciones_cotizacion_id_fkey"
+            columns: ["cotizacion_id"]
+            isOneToOne: false
+            referencedRelation: "cotizaciones"
             referencedColumns: ["id"]
           },
         ]
@@ -760,6 +847,100 @@ export type Database = {
         }
         Relationships: []
       }
+      margenes_minimos: {
+        Row: {
+          creado_en: string | null
+          forma_pago: Database["public"]["Enums"]["forma_pago"]
+          id: string
+          margen_minimo: number
+          modificado_en: string | null
+          vertical_id: string
+        }
+        Insert: {
+          creado_en?: string | null
+          forma_pago: Database["public"]["Enums"]["forma_pago"]
+          id?: string
+          margen_minimo: number
+          modificado_en?: string | null
+          vertical_id: string
+        }
+        Update: {
+          creado_en?: string | null
+          forma_pago?: Database["public"]["Enums"]["forma_pago"]
+          id?: string
+          margen_minimo?: number
+          modificado_en?: string | null
+          vertical_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "margenes_minimos_vertical_id_fkey"
+            columns: ["vertical_id"]
+            isOneToOne: false
+            referencedRelation: "verticales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notificaciones: {
+        Row: {
+          creado_en: string | null
+          entidad_id: string | null
+          entidad_tipo: string | null
+          id: string
+          leida: boolean | null
+          leida_en: string | null
+          mensaje: string
+          metadata: Json | null
+          prioridad:
+            | Database["public"]["Enums"]["notificacion_prioridad"]
+            | null
+          tipo: Database["public"]["Enums"]["notificacion_tipo"]
+          titulo: string
+          usuario_id: string
+        }
+        Insert: {
+          creado_en?: string | null
+          entidad_id?: string | null
+          entidad_tipo?: string | null
+          id?: string
+          leida?: boolean | null
+          leida_en?: string | null
+          mensaje: string
+          metadata?: Json | null
+          prioridad?:
+            | Database["public"]["Enums"]["notificacion_prioridad"]
+            | null
+          tipo: Database["public"]["Enums"]["notificacion_tipo"]
+          titulo: string
+          usuario_id: string
+        }
+        Update: {
+          creado_en?: string | null
+          entidad_id?: string | null
+          entidad_tipo?: string | null
+          id?: string
+          leida?: boolean | null
+          leida_en?: string | null
+          mensaje?: string
+          metadata?: Json | null
+          prioridad?:
+            | Database["public"]["Enums"]["notificacion_prioridad"]
+            | null
+          tipo?: Database["public"]["Enums"]["notificacion_tipo"]
+          titulo?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificaciones_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       permisos: {
         Row: {
           accion: Database["public"]["Enums"]["permiso_accion"]
@@ -1103,9 +1284,381 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_asesor_sync: {
+        Row: {
+          creado_en: string
+          desvinculado_en: string | null
+          display_phone_number: string | null
+          estado: Database["public"]["Enums"]["whatsapp_sync_estado"]
+          id: string
+          modificado_en: string | null
+          phone_number_id: string | null
+          token_acceso: string | null
+          ultimo_sync: string | null
+          usuario_id: string
+          vinculado_en: string | null
+          waba_id: string | null
+          waba_name: string | null
+        }
+        Insert: {
+          creado_en?: string
+          desvinculado_en?: string | null
+          display_phone_number?: string | null
+          estado?: Database["public"]["Enums"]["whatsapp_sync_estado"]
+          id?: string
+          modificado_en?: string | null
+          phone_number_id?: string | null
+          token_acceso?: string | null
+          ultimo_sync?: string | null
+          usuario_id: string
+          vinculado_en?: string | null
+          waba_id?: string | null
+          waba_name?: string | null
+        }
+        Update: {
+          creado_en?: string
+          desvinculado_en?: string | null
+          display_phone_number?: string | null
+          estado?: Database["public"]["Enums"]["whatsapp_sync_estado"]
+          id?: string
+          modificado_en?: string | null
+          phone_number_id?: string | null
+          token_acceso?: string | null
+          ultimo_sync?: string | null
+          usuario_id?: string
+          vinculado_en?: string | null
+          waba_id?: string | null
+          waba_name?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_conversaciones: {
+        Row: {
+          adjuntos_temporales: string[] | null
+          asesor_asignado_id: string | null
+          asignado_en: string | null
+          caso_id: string | null
+          cerrado_en: string | null
+          creado_en: string
+          datos_capturados: Json | null
+          estado: Database["public"]["Enums"]["whatsapp_conversacion_estado"]
+          estado_bot: Database["public"]["Enums"]["whatsapp_bot_estado"] | null
+          id: string
+          identificacion: string | null
+          lead_id: string | null
+          mensajes_no_leidos: number | null
+          metadata: Json | null
+          modificado_en: string | null
+          nombre_contacto: string | null
+          recordatorio_1_enviado: boolean | null
+          recordatorio_2_enviado: boolean | null
+          telefono_cliente: string
+          ultimo_mensaje: string | null
+          ultimo_mensaje_en: string | null
+          ultimo_mensaje_usuario_en: string | null
+        }
+        Insert: {
+          adjuntos_temporales?: string[] | null
+          asesor_asignado_id?: string | null
+          asignado_en?: string | null
+          caso_id?: string | null
+          cerrado_en?: string | null
+          creado_en?: string
+          datos_capturados?: Json | null
+          estado?: Database["public"]["Enums"]["whatsapp_conversacion_estado"]
+          estado_bot?: Database["public"]["Enums"]["whatsapp_bot_estado"] | null
+          id?: string
+          identificacion?: string | null
+          lead_id?: string | null
+          mensajes_no_leidos?: number | null
+          metadata?: Json | null
+          modificado_en?: string | null
+          nombre_contacto?: string | null
+          recordatorio_1_enviado?: boolean | null
+          recordatorio_2_enviado?: boolean | null
+          telefono_cliente: string
+          ultimo_mensaje?: string | null
+          ultimo_mensaje_en?: string | null
+          ultimo_mensaje_usuario_en?: string | null
+        }
+        Update: {
+          adjuntos_temporales?: string[] | null
+          asesor_asignado_id?: string | null
+          asignado_en?: string | null
+          caso_id?: string | null
+          cerrado_en?: string | null
+          creado_en?: string
+          datos_capturados?: Json | null
+          estado?: Database["public"]["Enums"]["whatsapp_conversacion_estado"]
+          estado_bot?: Database["public"]["Enums"]["whatsapp_bot_estado"] | null
+          id?: string
+          identificacion?: string | null
+          lead_id?: string | null
+          mensajes_no_leidos?: number | null
+          metadata?: Json | null
+          modificado_en?: string | null
+          nombre_contacto?: string | null
+          recordatorio_1_enviado?: boolean | null
+          recordatorio_2_enviado?: boolean | null
+          telefono_cliente?: string
+          ultimo_mensaje?: string | null
+          ultimo_mensaje_en?: string | null
+          ultimo_mensaje_usuario_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_conversaciones_asesor_asignado_id_fkey"
+            columns: ["asesor_asignado_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_conversaciones_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_mensajes: {
+        Row: {
+          adjuntos: string[] | null
+          contenido: string
+          conversacion_id: string
+          creado_en: string
+          direccion: Database["public"]["Enums"]["whatsapp_mensaje_direccion"]
+          id: string
+          leido: boolean | null
+          leido_en: string | null
+          mensaje_meta_id: string | null
+          remitente: Database["public"]["Enums"]["whatsapp_mensaje_remitente"]
+          tipo: Database["public"]["Enums"]["whatsapp_mensaje_tipo"]
+        }
+        Insert: {
+          adjuntos?: string[] | null
+          contenido: string
+          conversacion_id: string
+          creado_en?: string
+          direccion: Database["public"]["Enums"]["whatsapp_mensaje_direccion"]
+          id?: string
+          leido?: boolean | null
+          leido_en?: string | null
+          mensaje_meta_id?: string | null
+          remitente: Database["public"]["Enums"]["whatsapp_mensaje_remitente"]
+          tipo?: Database["public"]["Enums"]["whatsapp_mensaje_tipo"]
+        }
+        Update: {
+          adjuntos?: string[] | null
+          contenido?: string
+          conversacion_id?: string
+          creado_en?: string
+          direccion?: Database["public"]["Enums"]["whatsapp_mensaje_direccion"]
+          id?: string
+          leido?: boolean | null
+          leido_en?: string | null
+          mensaje_meta_id?: string | null
+          remitente?: Database["public"]["Enums"]["whatsapp_mensaje_remitente"]
+          tipo?: Database["public"]["Enums"]["whatsapp_mensaje_tipo"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_mensajes_conversacion_id_fkey"
+            columns: ["conversacion_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_templates: {
+        Row: {
+          activo: boolean | null
+          categoria: Database["public"]["Enums"]["whatsapp_template_categoria"]
+          codigo: string
+          contenido: string
+          creado_en: string
+          estado_meta:
+            | Database["public"]["Enums"]["whatsapp_template_estado"]
+            | null
+          id: string
+          modificado_en: string | null
+          nombre: string
+          variables: string[] | null
+        }
+        Insert: {
+          activo?: boolean | null
+          categoria: Database["public"]["Enums"]["whatsapp_template_categoria"]
+          codigo: string
+          contenido: string
+          creado_en?: string
+          estado_meta?:
+            | Database["public"]["Enums"]["whatsapp_template_estado"]
+            | null
+          id?: string
+          modificado_en?: string | null
+          nombre: string
+          variables?: string[] | null
+        }
+        Update: {
+          activo?: boolean | null
+          categoria?: Database["public"]["Enums"]["whatsapp_template_categoria"]
+          codigo?: string
+          contenido?: string
+          creado_en?: string
+          estado_meta?:
+            | Database["public"]["Enums"]["whatsapp_template_estado"]
+            | null
+          id?: string
+          modificado_en?: string | null
+          nombre?: string
+          variables?: string[] | null
+        }
+        Relationships: []
+      }
+      whatsapp_webhook_log: {
+        Row: {
+          conversacion_id: string | null
+          creado_en: string
+          error: string | null
+          id: string
+          mensaje_id: string | null
+          payload: Json
+          procesado: boolean | null
+          procesado_en: string | null
+          tipo_evento: string
+        }
+        Insert: {
+          conversacion_id?: string | null
+          creado_en?: string
+          error?: string | null
+          id?: string
+          mensaje_id?: string | null
+          payload: Json
+          procesado?: boolean | null
+          procesado_en?: string | null
+          tipo_evento: string
+        }
+        Update: {
+          conversacion_id?: string | null
+          creado_en?: string
+          error?: string | null
+          id?: string
+          mensaje_id?: string | null
+          payload?: Json
+          procesado?: boolean | null
+          procesado_en?: string | null
+          tipo_evento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_webhook_log_conversacion_id_fkey"
+            columns: ["conversacion_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_conversaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_webhook_log_mensaje_id_fkey"
+            columns: ["mensaje_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_mensajes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      v_cotizacion_items_detalle: {
+        Row: {
+          cantidad: number | null
+          costo_unitario: number | null
+          costo_unitario_cop: number | null
+          cotizacion_id: string | null
+          creado_en: string | null
+          descripcion: string | null
+          garantia_meses: number | null
+          id: string | null
+          iva_porcentaje: number | null
+          iva_tipo: Database["public"]["Enums"]["iva_tipo"] | null
+          iva_valor: number | null
+          margen_bajo_vertical: boolean | null
+          margen_item: number | null
+          modificado_en: string | null
+          moneda_costo: Database["public"]["Enums"]["moneda"] | null
+          nombre_producto: string | null
+          numero_parte: string | null
+          observaciones: string | null
+          orden: number | null
+          porcentaje_utilidad: number | null
+          precio_unitario: number | null
+          producto_id: string | null
+          proveedor_id: string | null
+          proveedor_nombre: string | null
+          subtotal_costo: number | null
+          subtotal_venta: number | null
+          tiempo_entrega_dias: number | null
+          total_item: number | null
+          total_iva: number | null
+          utilidad_item: number | null
+          vertical_id: string | null
+          vertical_margen_minimo: number | null
+          vertical_margen_sugerido: number | null
+          vertical_nombre: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotizacion_items_cotizacion_id_fkey"
+            columns: ["cotizacion_id"]
+            isOneToOne: false
+            referencedRelation: "cotizaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizacion_items_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizacion_items_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizacion_items_vertical_id_fkey"
+            columns: ["vertical_id"]
+            isOneToOne: false
+            referencedRelation: "verticales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_cotizacion_observaciones: {
+        Row: {
+          cotizacion_id: string | null
+          creado_en: string | null
+          id: string | null
+          menciones: string[] | null
+          texto: string | null
+          usuario_email: string | null
+          usuario_id: string | null
+          usuario_nombre: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotizacion_observaciones_cotizacion_id_fkey"
+            columns: ["cotizacion_id"]
+            isOneToOne: false
+            referencedRelation: "cotizaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       calcular_totales_cotizacion: {
@@ -1116,14 +1669,59 @@ export type Database = {
         Args: { p_usuario_id: string }
         Returns: number
       }
+      contar_notificaciones_no_leidas: {
+        Args: { p_usuario_id?: string }
+        Returns: number
+      }
       crear_cotizacion_desde_lead: {
         Args: { p_lead_id: string }
         Returns: string
       }
+      crear_notificacion: {
+        Args: {
+          p_entidad_id?: string
+          p_entidad_tipo?: string
+          p_mensaje: string
+          p_metadata?: Json
+          p_prioridad?: Database["public"]["Enums"]["notificacion_prioridad"]
+          p_tipo: Database["public"]["Enums"]["notificacion_tipo"]
+          p_titulo: string
+          p_usuario_id: string
+        }
+        Returns: string
+      }
       es_asesor_activo: { Args: { p_usuario_id: string }; Returns: boolean }
       lead_supera_24h: { Args: { p_lead_id: string }; Returns: boolean }
+      marcar_notificacion_leida: {
+        Args: { p_notificacion_id: string }
+        Returns: boolean
+      }
+      marcar_todas_notificaciones_leidas: { Args: never; Returns: number }
       obtener_asesor_disponible: { Args: never; Returns: string }
+      obtener_estadisticas_asignaciones: {
+        Args: { p_fecha_fin?: string; p_fecha_inicio?: string }
+        Returns: {
+          asesor_id: string
+          asesor_nombre: string
+          leads_convertidos: number
+          leads_pendientes: number
+          total_asignados: number
+          total_reasignados: number
+        }[]
+      }
+      obtener_margen_minimo: {
+        Args: {
+          p_forma_pago: Database["public"]["Enums"]["forma_pago"]
+          p_vertical_id: string
+        }
+        Returns: number
+      }
       obtener_trm: { Args: { p_fecha?: string }; Returns: number }
+      puede_reasignar_lead: { Args: { p_usuario_id: string }; Returns: boolean }
+      reasignar_lead: {
+        Args: { p_lead_id: string; p_nuevo_asesor_id: string }
+        Returns: Json
+      }
       usuario_tiene_permiso: {
         Args: {
           p_accion: Database["public"]["Enums"]["permiso_accion"]
@@ -1136,18 +1734,35 @@ export type Database = {
         Args: { p_cotizacion_id: string }
         Returns: boolean
       }
+      verificar_margen_cotizacion_v2: {
+        Args: { p_cotizacion_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       cotizacion_estado:
         | "BORRADOR"
         | "CREACION_OFERTA"
+        | "PENDIENTE_APROBACION_MARGEN"
         | "NEGOCIACION"
         | "RIESGO"
+        | "ENVIADA_CLIENTE"
+        | "PROFORMA_ENVIADA"
+        | "PENDIENTE_AJUSTES"
+        | "ACEPTADA_CLIENTE"
+        | "RECHAZADA_CLIENTE"
         | "PENDIENTE_OC"
-        | "APROBACION_MARGEN"
         | "GANADA"
         | "PERDIDA"
-      forma_pago: "ANTICIPADO" | "CREDITO_30" | "CREDITO_60" | "CREDITO_90"
+      forma_pago:
+        | "ANTICIPADO"
+        | "CONTRA_ENTREGA"
+        | "CREDITO_8"
+        | "CREDITO_15"
+        | "CREDITO_30"
+        | "CREDITO_45"
+        | "CREDITO_60"
+        | "CREDITO_90"
       iva_tipo: "IVA_0" | "IVA_5" | "IVA_19"
       lead_canal: "WHATSAPP" | "WEB" | "MANUAL"
       lead_estado:
@@ -1158,6 +1773,16 @@ export type Database = {
         | "RECHAZADO"
       lead_tipo_asignacion: "AUTOMATICA" | "MANUAL" | "REASIGNACION"
       moneda: "COP" | "USD"
+      notificacion_prioridad: "BAJA" | "MEDIA" | "ALTA"
+      notificacion_tipo:
+        | "LEAD_ASIGNADO"
+        | "LEAD_REASIGNADO"
+        | "COTIZACION_CREADA"
+        | "COTIZACION_APROBACION_REQUERIDA"
+        | "COTIZACION_APROBADA"
+        | "COTIZACION_RECHAZADA"
+        | "MENCION"
+        | "SISTEMA"
       permiso_accion:
         | "CREAR"
         | "EDITAR"
@@ -1166,6 +1791,547 @@ export type Database = {
         | "APROBAR"
         | "EXPORTAR"
       usuario_estado: "ACTIVO" | "INACTIVO"
+      whatsapp_bot_estado:
+        | "INICIO"
+        | "CAPTURA_NOMBRE"
+        | "CAPTURA_ID"
+        | "MENU_PRINCIPAL"
+        | "FLUJO_COTIZACION"
+        | "FLUJO_PEDIDO"
+        | "FLUJO_OTRO"
+        | "ADJUNTO_SIN_CONTEXTO"
+        | "RECORDATORIO_1"
+        | "RECORDATORIO_2"
+        | "CONFIRMACION"
+        | "CERRADA"
+      whatsapp_conversacion_estado:
+        | "ACTIVA"
+        | "PAUSADA"
+        | "CERRADA"
+        | "INCOMPLETA"
+      whatsapp_mensaje_direccion: "ENTRANTE" | "SALIENTE"
+      whatsapp_mensaje_remitente: "BOT" | "USUARIO" | "ASESOR"
+      whatsapp_mensaje_tipo:
+        | "TEXTO"
+        | "IMAGEN"
+        | "DOCUMENTO"
+        | "TEMPLATE"
+        | "AUDIO"
+        | "VIDEO"
+      whatsapp_sync_estado: "ACTIVO" | "DESVINCULADO" | "ERROR" | "PENDIENTE"
+      whatsapp_template_categoria:
+        | "BIENVENIDA"
+        | "COTIZACION"
+        | "SEGUIMIENTO"
+        | "CONFIRMACION"
+        | "RECORDATORIO"
+        | "SOPORTE"
+      whatsapp_template_estado: "APROBADO" | "PENDIENTE" | "RECHAZADO"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  storage: {
+    Tables: {
+      buckets: {
+        Row: {
+          allowed_mime_types: string[] | null
+          avif_autodetection: boolean | null
+          created_at: string | null
+          file_size_limit: number | null
+          id: string
+          name: string
+          owner: string | null
+          owner_id: string | null
+          public: boolean | null
+          type: Database["storage"]["Enums"]["buckettype"]
+          updated_at: string | null
+        }
+        Insert: {
+          allowed_mime_types?: string[] | null
+          avif_autodetection?: boolean | null
+          created_at?: string | null
+          file_size_limit?: number | null
+          id: string
+          name: string
+          owner?: string | null
+          owner_id?: string | null
+          public?: boolean | null
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string | null
+        }
+        Update: {
+          allowed_mime_types?: string[] | null
+          avif_autodetection?: boolean | null
+          created_at?: string | null
+          file_size_limit?: number | null
+          id?: string
+          name?: string
+          owner?: string | null
+          owner_id?: string | null
+          public?: boolean | null
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      buckets_analytics: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          format: string
+          id: string
+          name: string
+          type: Database["storage"]["Enums"]["buckettype"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          format?: string
+          id?: string
+          name: string
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          format?: string
+          id?: string
+          name?: string
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      buckets_vectors: {
+        Row: {
+          created_at: string
+          id: string
+          type: Database["storage"]["Enums"]["buckettype"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          type?: Database["storage"]["Enums"]["buckettype"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      migrations: {
+        Row: {
+          executed_at: string | null
+          hash: string
+          id: number
+          name: string
+        }
+        Insert: {
+          executed_at?: string | null
+          hash: string
+          id: number
+          name: string
+        }
+        Update: {
+          executed_at?: string | null
+          hash?: string
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      objects: {
+        Row: {
+          bucket_id: string | null
+          created_at: string | null
+          id: string
+          last_accessed_at: string | null
+          level: number | null
+          metadata: Json | null
+          name: string | null
+          owner: string | null
+          owner_id: string | null
+          path_tokens: string[] | null
+          updated_at: string | null
+          user_metadata: Json | null
+          version: string | null
+        }
+        Insert: {
+          bucket_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          level?: number | null
+          metadata?: Json | null
+          name?: string | null
+          owner?: string | null
+          owner_id?: string | null
+          path_tokens?: string[] | null
+          updated_at?: string | null
+          user_metadata?: Json | null
+          version?: string | null
+        }
+        Update: {
+          bucket_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          level?: number | null
+          metadata?: Json | null
+          name?: string | null
+          owner?: string | null
+          owner_id?: string | null
+          path_tokens?: string[] | null
+          updated_at?: string | null
+          user_metadata?: Json | null
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objects_bucketId_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "buckets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prefixes: {
+        Row: {
+          bucket_id: string
+          created_at: string | null
+          level: number
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string | null
+          level?: number
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string | null
+          level?: number
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prefixes_bucketId_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "buckets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      s3_multipart_uploads: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          id: string
+          in_progress_size: number
+          key: string
+          owner_id: string | null
+          upload_signature: string
+          user_metadata: Json | null
+          version: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          id: string
+          in_progress_size?: number
+          key: string
+          owner_id?: string | null
+          upload_signature: string
+          user_metadata?: Json | null
+          version: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          id?: string
+          in_progress_size?: number
+          key?: string
+          owner_id?: string | null
+          upload_signature?: string
+          user_metadata?: Json | null
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "s3_multipart_uploads_bucket_id_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "buckets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      s3_multipart_uploads_parts: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          etag: string
+          id: string
+          key: string
+          owner_id: string | null
+          part_number: number
+          size: number
+          upload_id: string
+          version: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          etag: string
+          id?: string
+          key: string
+          owner_id?: string | null
+          part_number: number
+          size?: number
+          upload_id: string
+          version: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          etag?: string
+          id?: string
+          key?: string
+          owner_id?: string | null
+          part_number?: number
+          size?: number
+          upload_id?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "s3_multipart_uploads_parts_bucket_id_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "buckets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "s3_multipart_uploads_parts_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "s3_multipart_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vector_indexes: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          data_type: string
+          dimension: number
+          distance_metric: string
+          id: string
+          metadata_configuration: Json | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          data_type: string
+          dimension: number
+          distance_metric: string
+          id?: string
+          metadata_configuration?: Json | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          data_type?: string
+          dimension?: number
+          distance_metric?: string
+          id?: string
+          metadata_configuration?: Json | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vector_indexes_bucket_id_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "buckets_vectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      add_prefixes: {
+        Args: { _bucket_id: string; _name: string }
+        Returns: undefined
+      }
+      can_insert_object: {
+        Args: { bucketid: string; metadata: Json; name: string; owner: string }
+        Returns: undefined
+      }
+      delete_leaf_prefixes: {
+        Args: { bucket_ids: string[]; names: string[] }
+        Returns: undefined
+      }
+      delete_prefix: {
+        Args: { _bucket_id: string; _name: string }
+        Returns: boolean
+      }
+      extension: { Args: { name: string }; Returns: string }
+      filename: { Args: { name: string }; Returns: string }
+      foldername: { Args: { name: string }; Returns: string[] }
+      get_level: { Args: { name: string }; Returns: number }
+      get_prefix: { Args: { name: string }; Returns: string }
+      get_prefixes: { Args: { name: string }; Returns: string[] }
+      get_size_by_bucket: {
+        Args: never
+        Returns: {
+          bucket_id: string
+          size: number
+        }[]
+      }
+      list_multipart_uploads_with_delimiter: {
+        Args: {
+          bucket_id: string
+          delimiter_param: string
+          max_keys?: number
+          next_key_token?: string
+          next_upload_token?: string
+          prefix_param: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          key: string
+        }[]
+      }
+      list_objects_with_delimiter: {
+        Args: {
+          bucket_id: string
+          delimiter_param: string
+          max_keys?: number
+          next_token?: string
+          prefix_param: string
+          start_after?: string
+        }
+        Returns: {
+          id: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+      lock_top_prefixes: {
+        Args: { bucket_ids: string[]; names: string[] }
+        Returns: undefined
+      }
+      operation: { Args: never; Returns: string }
+      search: {
+        Args: {
+          bucketname: string
+          levels?: number
+          limits?: number
+          offsets?: number
+          prefix: string
+          search?: string
+          sortcolumn?: string
+          sortorder?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+      search_legacy_v1: {
+        Args: {
+          bucketname: string
+          levels?: number
+          limits?: number
+          offsets?: number
+          prefix: string
+          search?: string
+          sortcolumn?: string
+          sortorder?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+      search_v1_optimised: {
+        Args: {
+          bucketname: string
+          levels?: number
+          limits?: number
+          offsets?: number
+          prefix: string
+          search?: string
+          sortcolumn?: string
+          sortorder?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+      search_v2: {
+        Args: {
+          bucket_name: string
+          levels?: number
+          limits?: number
+          prefix: string
+          sort_column?: string
+          sort_column_after?: string
+          sort_order?: string
+          start_after?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          key: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+    }
+    Enums: {
+      buckettype: "STANDARD" | "ANALYTICS" | "VECTOR"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1291,19 +2457,36 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       cotizacion_estado: [
         "BORRADOR",
         "CREACION_OFERTA",
+        "PENDIENTE_APROBACION_MARGEN",
         "NEGOCIACION",
         "RIESGO",
+        "ENVIADA_CLIENTE",
+        "PROFORMA_ENVIADA",
+        "PENDIENTE_AJUSTES",
+        "ACEPTADA_CLIENTE",
+        "RECHAZADA_CLIENTE",
         "PENDIENTE_OC",
-        "APROBACION_MARGEN",
         "GANADA",
         "PERDIDA",
       ],
-      forma_pago: ["ANTICIPADO", "CREDITO_30", "CREDITO_60", "CREDITO_90"],
+      forma_pago: [
+        "ANTICIPADO",
+        "CONTRA_ENTREGA",
+        "CREDITO_8",
+        "CREDITO_15",
+        "CREDITO_30",
+        "CREDITO_45",
+        "CREDITO_60",
+        "CREDITO_90",
+      ],
       iva_tipo: ["IVA_0", "IVA_5", "IVA_19"],
       lead_canal: ["WHATSAPP", "WEB", "MANUAL"],
       lead_estado: [
@@ -1315,6 +2498,17 @@ export const Constants = {
       ],
       lead_tipo_asignacion: ["AUTOMATICA", "MANUAL", "REASIGNACION"],
       moneda: ["COP", "USD"],
+      notificacion_prioridad: ["BAJA", "MEDIA", "ALTA"],
+      notificacion_tipo: [
+        "LEAD_ASIGNADO",
+        "LEAD_REASIGNADO",
+        "COTIZACION_CREADA",
+        "COTIZACION_APROBACION_REQUERIDA",
+        "COTIZACION_APROBADA",
+        "COTIZACION_RECHAZADA",
+        "MENCION",
+        "SISTEMA",
+      ],
       permiso_accion: [
         "CREAR",
         "EDITAR",
@@ -1324,6 +2518,51 @@ export const Constants = {
         "EXPORTAR",
       ],
       usuario_estado: ["ACTIVO", "INACTIVO"],
+      whatsapp_bot_estado: [
+        "INICIO",
+        "CAPTURA_NOMBRE",
+        "CAPTURA_ID",
+        "MENU_PRINCIPAL",
+        "FLUJO_COTIZACION",
+        "FLUJO_PEDIDO",
+        "FLUJO_OTRO",
+        "ADJUNTO_SIN_CONTEXTO",
+        "RECORDATORIO_1",
+        "RECORDATORIO_2",
+        "CONFIRMACION",
+        "CERRADA",
+      ],
+      whatsapp_conversacion_estado: [
+        "ACTIVA",
+        "PAUSADA",
+        "CERRADA",
+        "INCOMPLETA",
+      ],
+      whatsapp_mensaje_direccion: ["ENTRANTE", "SALIENTE"],
+      whatsapp_mensaje_remitente: ["BOT", "USUARIO", "ASESOR"],
+      whatsapp_mensaje_tipo: [
+        "TEXTO",
+        "IMAGEN",
+        "DOCUMENTO",
+        "TEMPLATE",
+        "AUDIO",
+        "VIDEO",
+      ],
+      whatsapp_sync_estado: ["ACTIVO", "DESVINCULADO", "ERROR", "PENDIENTE"],
+      whatsapp_template_categoria: [
+        "BIENVENIDA",
+        "COTIZACION",
+        "SEGUIMIENTO",
+        "CONFIRMACION",
+        "RECORDATORIO",
+        "SOPORTE",
+      ],
+      whatsapp_template_estado: ["APROBADO", "PENDIENTE", "RECHAZADO"],
+    },
+  },
+  storage: {
+    Enums: {
+      buckettype: ["STANDARD", "ANALYTICS", "VECTOR"],
     },
   },
 } as const

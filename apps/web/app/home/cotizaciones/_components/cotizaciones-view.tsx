@@ -9,6 +9,7 @@ import {
   FileText,
   LayoutGrid,
   List,
+  Loader2,
   MoreHorizontal,
   Plus,
   Search,
@@ -36,13 +37,22 @@ import {
   SelectValue,
 } from '@kit/ui/select';
 
-import { cotizaciones, type Cotizacion } from '~/lib/mock-data';
+import {
+  useCotizaciones,
+  useCotizacionStats,
+  useDuplicarCotizacion,
+  useTrmActual,
+  type CotizacionEstado,
+} from '~/lib/cotizaciones';
 
 import { CotizacionesKanban } from './cotizaciones-kanban';
 import { CrearCotizacionModal } from './crear-cotizacion-modal';
 import { DetalleCotizacionModal } from './detalle-cotizacion-modal';
 
 type VistaType = 'tabla' | 'kanban';
+
+// Tipo para cotización desde la DB
+type CotizacionDB = NonNullable<ReturnType<typeof useCotizaciones>['data']>[number];
 
 export function CotizacionesView() {
   const [vistaActual, setVistaActual] = useState<VistaType>('kanban');
@@ -51,69 +61,97 @@ export function CotizacionesView() {
   const [modalCrear, setModalCrear] = useState(false);
   const [modalDetalle, setModalDetalle] = useState(false);
   const [cotizacionSeleccionada, setCotizacionSeleccionada] =
-    useState<Cotizacion | null>(null);
+    useState<CotizacionDB | null>(null);
 
-  // TRM del día
-  const trmActual = 4250;
+  // Datos reales de Supabase
+  const { data: cotizaciones = [], isLoading } = useCotizaciones();
+  const { data: stats } = useCotizacionStats();
+  const { data: trmData } = useTrmActual();
+  const trmActual = trmData?.valor || 4250;
 
+  // Mutation para duplicar
+  const duplicarMutation = useDuplicarCotizacion();
+
+  // Filtrar cotizaciones
   const cotizacionesFiltradas = cotizaciones.filter((cotizacion) => {
     const matchEstado =
       filtroEstado === 'todos' || cotizacion.estado === filtroEstado;
     const matchBusqueda =
-      busqueda === '' || cotizacion.numero.toString().includes(busqueda);
+      busqueda === '' ||
+      cotizacion.numero.toString().includes(busqueda) ||
+      cotizacion.razon_social.toLowerCase().includes(busqueda.toLowerCase());
     return matchEstado && matchBusqueda;
   });
 
   const getEstadoBadge = (estado: string) => {
-    const badges = {
-      borrador: {
-        variant: 'outline' as const,
+    const badges: Record<string, { variant: 'outline' | 'secondary' | 'default' | 'destructive'; label: string; className: string }> = {
+      BORRADOR: {
+        variant: 'outline',
         label: 'Borrador',
         className: 'border-gray-400 text-gray-600 dark:text-gray-400',
       },
-      enviada: {
-        variant: 'outline' as const,
-        label: 'Enviada',
-        className: 'border-blue-500 text-blue-600 dark:text-blue-400',
-      },
-      aprobada: {
-        variant: 'default' as const,
-        label: 'Aprobada',
-        className: 'bg-green-600',
-      },
-      rechazada: { variant: 'destructive' as const, label: 'Rechazada', className: '' },
-      vencida: {
-        variant: 'outline' as const,
-        label: 'Vencida',
-        className: 'border-orange-500 text-orange-600 dark:text-orange-400',
-      },
-      '40': {
-        variant: 'outline' as const,
+      CREACION_OFERTA: {
+        variant: 'outline',
         label: 'Creación Oferta',
         className: 'border-blue-500 text-blue-600',
       },
-      '60': {
-        variant: 'outline' as const,
+      PENDIENTE_APROBACION_MARGEN: {
+        variant: 'outline',
+        label: 'Aprob. Margen',
+        className: 'border-orange-500 text-orange-600',
+      },
+      NEGOCIACION: {
+        variant: 'outline',
         label: 'Negociación',
         className: 'border-purple-500 text-purple-600',
       },
-      '70': {
-        variant: 'outline' as const,
+      RIESGO: {
+        variant: 'outline',
         label: 'Riesgo',
         className: 'border-orange-500 text-orange-600',
       },
-      '80': {
-        variant: 'outline' as const,
+      ENVIADA_CLIENTE: {
+        variant: 'outline',
+        label: 'Enviada',
+        className: 'border-blue-500 text-blue-600 dark:text-blue-400',
+      },
+      PROFORMA_ENVIADA: {
+        variant: 'outline',
+        label: 'Proforma',
+        className: 'border-cyan-500 text-cyan-600',
+      },
+      PENDIENTE_AJUSTES: {
+        variant: 'outline',
+        label: 'Ajustes',
+        className: 'border-yellow-500 text-yellow-600',
+      },
+      ACEPTADA_CLIENTE: {
+        variant: 'default',
+        label: 'Aceptada',
+        className: 'bg-green-600',
+      },
+      RECHAZADA_CLIENTE: {
+        variant: 'destructive',
+        label: 'Rechazada',
+        className: '',
+      },
+      PENDIENTE_OC: {
+        variant: 'outline',
         label: 'Pendiente OC',
         className: 'border-green-500 text-green-600',
       },
-      perdida: {
-        variant: 'secondary' as const,
+      GANADA: {
+        variant: 'default',
+        label: 'Ganada',
+        className: 'bg-green-600',
+      },
+      PERDIDA: {
+        variant: 'secondary',
         label: 'Perdida',
         className: 'opacity-60',
       },
     };
-    const badge = badges[estado as keyof typeof badges];
+    const badge = badges[estado];
     if (!badge)
       return (
         <Badge variant="outline" className="h-4 px-1.5 text-[10px]">
@@ -130,20 +168,48 @@ export function CotizacionesView() {
     );
   };
 
-  const handleVerDetalle = (cotizacion: Cotizacion) => {
+  const getFormaPagoLabel = (formaPago: string) => {
+    const labels: Record<string, string> = {
+      ANTICIPADO: 'Anticip.',
+      CONTRA_ENTREGA: 'C/Entrega',
+      CREDITO_8: 'Créd 8d',
+      CREDITO_15: 'Créd 15d',
+      CREDITO_30: 'Créd 30d',
+      CREDITO_45: 'Créd 45d',
+      CREDITO_60: 'Créd 60d',
+      CREDITO_90: 'Créd 90d',
+    };
+    return labels[formaPago] || formaPago;
+  };
+
+  const handleVerDetalle = (cotizacion: CotizacionDB) => {
     setCotizacionSeleccionada(cotizacion);
     setModalDetalle(true);
   };
 
-  const handleDuplicar = (cotizacion: Cotizacion) => {
-    toast.success(
-      `Cotización #${cotizacion.numero} duplicada como #${cotizacion.numero + 1}`
-    );
+  const handleDuplicar = async (cotizacion: CotizacionDB) => {
+    try {
+      const result = await duplicarMutation.mutateAsync({ id: cotizacion.id });
+      toast.success(
+        `Cotización #${result.numeroOriginal} duplicada como #${result.numeroNuevo}`
+      );
+    } catch (error) {
+      console.error('Error al duplicar:', error);
+      toast.error('Error al duplicar la cotización');
+    }
   };
 
   const handleGenerarPedido = () => {
     toast.success('Pedido generado exitosamente');
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -202,6 +268,7 @@ export function CotizacionesView() {
       <div className="min-h-0 flex-1 overflow-hidden">
         {vistaActual === 'kanban' ? (
           <CotizacionesKanban
+            cotizaciones={cotizaciones}
             onVerDetalle={handleVerDetalle}
             onCrear={() => setModalCrear(true)}
           />
@@ -212,23 +279,25 @@ export function CotizacionesView() {
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-3 w-3 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por número..."
+                  placeholder="Buscar por número o cliente..."
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                   className="h-8 pl-8 text-sm"
                 />
               </div>
               <Select value={filtroEstado} onValueChange={setFiltroEstado}>
-                <SelectTrigger className="h-8 w-[140px] text-sm">
+                <SelectTrigger className="h-8 w-[160px] text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="40">Creación Oferta</SelectItem>
-                  <SelectItem value="60">Negociación</SelectItem>
-                  <SelectItem value="70">Riesgo</SelectItem>
-                  <SelectItem value="80">Pendiente OC</SelectItem>
-                  <SelectItem value="perdida">Perdida</SelectItem>
+                  <SelectItem value="BORRADOR">Borrador</SelectItem>
+                  <SelectItem value="CREACION_OFERTA">Creación Oferta</SelectItem>
+                  <SelectItem value="NEGOCIACION">Negociación</SelectItem>
+                  <SelectItem value="RIESGO">Riesgo</SelectItem>
+                  <SelectItem value="PENDIENTE_OC">Pendiente OC</SelectItem>
+                  <SelectItem value="GANADA">Ganada</SelectItem>
+                  <SelectItem value="PERDIDA">Perdida</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -236,20 +305,10 @@ export function CotizacionesView() {
             {/* Stats */}
             <div className="grid flex-shrink-0 grid-cols-2 gap-2 md:grid-cols-4">
               {[
-                { label: 'Total', count: cotizaciones.length },
-                {
-                  label: 'Margen Bajo',
-                  count: cotizaciones.filter((c) => c.aprobacionGerenciaRequerida)
-                    .length,
-                },
-                {
-                  label: 'Negociación',
-                  count: cotizaciones.filter((c) => c.estado === '60').length,
-                },
-                {
-                  label: 'Pendiente OC',
-                  count: cotizaciones.filter((c) => c.estado === '80').length,
-                },
+                { label: 'Total', count: stats?.total || 0 },
+                { label: 'En Negociación', count: stats?.en_negociacion || 0 },
+                { label: 'Pendiente OC', count: stats?.pendiente_oc || 0 },
+                { label: 'Ganadas', count: stats?.ganadas || 0 },
               ].map((stat) => (
                 <Card key={stat.label} className="p-2">
                   <p className="text-[10px] text-muted-foreground">
@@ -271,16 +330,13 @@ export function CotizacionesView() {
                       </th>
                       <th className="px-2 py-1.5 text-left font-medium">#</th>
                       <th className="px-2 py-1.5 text-left font-medium">
+                        Cliente
+                      </th>
+                      <th className="px-2 py-1.5 text-left font-medium">
                         Fecha
                       </th>
                       <th className="px-2 py-1.5 text-left font-medium">
                         Pago
-                      </th>
-                      <th className="px-2 py-1.5 text-left font-medium">
-                        Ítems
-                      </th>
-                      <th className="px-2 py-1.5 text-right font-medium">
-                        Costo
                       </th>
                       <th className="px-2 py-1.5 text-right font-medium">
                         Venta
@@ -303,16 +359,19 @@ export function CotizacionesView() {
                         className="text-xs transition-colors hover:bg-muted/30"
                       >
                         <td className="px-2 py-1.5">
-                          {getEstadoBadge(cotizacion.estado)}
+                          {getEstadoBadge(cotizacion.estado || 'BORRADOR')}
                         </td>
                         <td className="px-2 py-1.5">
                           <span className="font-mono text-[10px]">
                             #{cotizacion.numero}
                           </span>
                         </td>
+                        <td className="max-w-[150px] truncate px-2 py-1.5 text-[10px]">
+                          {cotizacion.razon_social}
+                        </td>
                         <td className="px-2 py-1.5 text-[10px] text-muted-foreground">
                           {new Date(
-                            cotizacion.fechaCotizacion
+                            cotizacion.fecha_cotizacion
                           ).toLocaleDateString('es-CO', {
                             month: 'short',
                             day: 'numeric',
@@ -323,53 +382,31 @@ export function CotizacionesView() {
                             variant="outline"
                             className="h-4 px-1 text-[9px]"
                           >
-                            {cotizacion.terminosPago}
+                            {getFormaPagoLabel(cotizacion.forma_pago || 'ANTICIPADO')}
                           </Badge>
                         </td>
-                        <td className="px-2 py-1.5 text-[10px]">
-                          {cotizacion.items.length}
-                        </td>
-                        <td className="px-2 py-1.5 text-right text-[10px] text-muted-foreground">
-                          ${(cotizacion.totalCosto / 1000000).toFixed(1)}M
-                        </td>
                         <td className="px-2 py-1.5 text-right text-[10px]">
-                          ${(cotizacion.totalVenta / 1000000).toFixed(1)}M
+                          ${((cotizacion.total_venta || 0) / 1000000).toFixed(1)}M
                         </td>
                         <td className="px-2 py-1.5 text-right">
                           <span
                             className={`text-[10px] font-medium ${
-                              cotizacion.margenPct < 25
+                              (cotizacion.margen_porcentaje || 0) < 10
                                 ? 'text-orange-600 dark:text-orange-400'
                                 : 'text-green-600 dark:text-green-400'
                             }`}
                           >
-                            {cotizacion.margenPct}%
+                            {(cotizacion.margen_porcentaje || 0).toFixed(1)}%
                           </span>
                         </td>
                         <td className="px-2 py-1.5">
                           <div className="flex flex-wrap gap-0.5">
-                            {cotizacion.clienteBloqueado && (
-                              <Badge
-                                variant="destructive"
-                                className="h-3.5 px-1 text-[9px]"
-                              >
-                                Bloqueado
-                              </Badge>
-                            )}
-                            {cotizacion.aprobacionGerenciaRequerida && (
+                            {cotizacion.requiere_aprobacion_margen && (
                               <Badge
                                 variant="outline"
                                 className="h-3.5 border-orange-500 px-1 text-[9px] text-orange-600"
                               >
                                 Margen
-                              </Badge>
-                            )}
-                            {cotizacion.aprobacionFinancieraRequerida && (
-                              <Badge
-                                variant="outline"
-                                className="h-3.5 border-blue-500 px-1 text-[9px] text-blue-600"
-                              >
-                                Finanzas
                               </Badge>
                             )}
                           </div>
@@ -384,7 +421,7 @@ export function CotizacionesView() {
                             >
                               Ver
                             </Button>
-                            {cotizacion.estado === '80' && (
+                            {cotizacion.estado === 'PENDIENTE_OC' && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -409,13 +446,7 @@ export function CotizacionesView() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  className="text-xs"
-                                  onClick={() => handleVerDetalle(cotizacion)}
-                                >
-                                  Ver detalles
-                                </DropdownMenuItem>
-                                {cotizacion.estado === 'borrador' && (
+                                {cotizacion.estado === 'BORRADOR' && (
                                   <DropdownMenuItem className="gap-2 text-xs">
                                     <Send className="h-3 w-3" />
                                     Enviar al cliente
@@ -461,7 +492,7 @@ export function CotizacionesView() {
                       <span className="font-mono text-xs">
                         #{cotizacion.numero}
                       </span>
-                      {getEstadoBadge(cotizacion.estado)}
+                      {getEstadoBadge(cotizacion.estado || 'BORRADOR')}
                     </div>
                     <Button
                       size="sm"
@@ -473,32 +504,19 @@ export function CotizacionesView() {
                     </Button>
                   </div>
 
+                  <p className="mb-2 truncate text-xs font-medium">
+                    {cotizacion.razon_social}
+                  </p>
+
                   {/* Alertas */}
-                  {(cotizacion.clienteBloqueado ||
-                    cotizacion.aprobacionGerenciaRequerida ||
-                    cotizacion.aprobacionFinancieraRequerida) && (
+                  {cotizacion.requiere_aprobacion_margen && (
                     <div className="mb-2 flex flex-wrap gap-1">
-                      {cotizacion.clienteBloqueado && (
-                        <Badge variant="destructive" className="h-4 text-[10px]">
-                          Bloqueado
-                        </Badge>
-                      )}
-                      {cotizacion.aprobacionGerenciaRequerida && (
-                        <Badge
-                          variant="outline"
-                          className="h-4 border-orange-500 text-[10px] text-orange-600"
-                        >
-                          Margen bajo
-                        </Badge>
-                      )}
-                      {cotizacion.aprobacionFinancieraRequerida && (
-                        <Badge
-                          variant="outline"
-                          className="h-4 border-blue-500 text-[10px] text-blue-600"
-                        >
-                          Aprobación financiera
-                        </Badge>
-                      )}
+                      <Badge
+                        variant="outline"
+                        className="h-4 border-orange-500 text-[10px] text-orange-600"
+                      >
+                        Margen bajo
+                      </Badge>
                     </div>
                   )}
 
@@ -506,28 +524,35 @@ export function CotizacionesView() {
                     <div>
                       <p className="text-muted-foreground">Venta</p>
                       <p className="font-medium">
-                        ${(cotizacion.totalVenta / 1000000).toFixed(1)}M
+                        ${((cotizacion.total_venta || 0) / 1000000).toFixed(1)}M
                       </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Margen</p>
                       <p
                         className={`font-medium ${
-                          cotizacion.margenPct < 25
+                          (cotizacion.margen_porcentaje || 0) < 10
                             ? 'text-orange-600'
                             : 'text-green-600'
                         }`}
                       >
-                        {cotizacion.margenPct}%
+                        {(cotizacion.margen_porcentaje || 0).toFixed(1)}%
                       </p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Ítems</p>
-                      <p>{cotizacion.items.length}</p>
+                      <p className="text-muted-foreground">Fecha</p>
+                      <p>
+                        {new Date(cotizacion.fecha_cotizacion).toLocaleDateString(
+                          'es-CO',
+                          { month: 'short', day: 'numeric' }
+                        )}
+                      </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Pago</p>
-                      <p className="truncate">{cotizacion.terminosPago}</p>
+                      <p className="truncate">
+                        {getFormaPagoLabel(cotizacion.forma_pago || 'ANTICIPADO')}
+                      </p>
                     </div>
                   </div>
                 </Card>
@@ -549,8 +574,8 @@ export function CotizacionesView() {
       <CrearCotizacionModal
         open={modalCrear}
         onOpenChange={setModalCrear}
-        onCreated={(cotizacion) => {
-          console.log('Nueva cotización:', cotizacion);
+        onCreated={() => {
+          // La lista se actualiza automáticamente por invalidación de cache
         }}
       />
 

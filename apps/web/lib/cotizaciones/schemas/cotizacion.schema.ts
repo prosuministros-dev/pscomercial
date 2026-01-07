@@ -4,17 +4,26 @@ import { z } from 'zod';
 export const CotizacionEstadoEnum = z.enum([
   'BORRADOR',
   'CREACION_OFERTA',
+  'PENDIENTE_APROBACION_MARGEN',
   'NEGOCIACION',
   'RIESGO',
+  'ENVIADA_CLIENTE',
+  'PROFORMA_ENVIADA',
+  'PENDIENTE_AJUSTES',
+  'ACEPTADA_CLIENTE',
+  'RECHAZADA_CLIENTE',
   'PENDIENTE_OC',
-  'APROBACION_MARGEN',
   'GANADA',
   'PERDIDA',
 ]);
 
 export const FormaPagoEnum = z.enum([
   'ANTICIPADO',
+  'CONTRA_ENTREGA',
+  'CREDITO_8',
+  'CREDITO_15',
   'CREDITO_30',
+  'CREDITO_45',
   'CREDITO_60',
   'CREDITO_90',
 ]);
@@ -87,6 +96,7 @@ export type CambiarEstadoCotizacionInput = z.infer<typeof CambiarEstadoCotizacio
 export const AddCotizacionItemSchema = z.object({
   cotizacion_id: z.string().uuid(),
   producto_id: z.string().uuid().optional(),
+  vertical_id: z.string().uuid().optional(),
   numero_parte: z.string().min(1, 'El número de parte es obligatorio'),
   nombre_producto: z.string().min(1, 'El nombre es obligatorio'),
   descripcion: z.string().optional(),
@@ -141,6 +151,13 @@ export const ReorderItemsSchema = z.object({
 });
 
 export type ReorderItemsInput = z.infer<typeof ReorderItemsSchema>;
+
+// Schema para duplicar cotización
+export const DuplicarCotizacionSchema = z.object({
+  id: z.string().uuid(),
+});
+
+export type DuplicarCotizacionInput = z.infer<typeof DuplicarCotizacionSchema>;
 
 // Schema para filtros
 export const CotizacionFiltersSchema = z.object({

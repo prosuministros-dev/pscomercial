@@ -16,7 +16,7 @@ import {
 } from '@kit/ui/dropdown-menu';
 import { Input } from '@kit/ui/input';
 
-import { useConvertLead, useRejectLead, useLeads } from '~/lib/leads';
+import { useRejectLead, useLeads } from '~/lib/leads';
 
 // Tipo del lead desde la base de datos (reutiliza el tipo del hook)
 type LeadDB = NonNullable<ReturnType<typeof useLeads>['data']>[number];
@@ -26,13 +26,14 @@ interface LeadsKanbanProps {
   onVerDetalle: (lead: LeadDB) => void;
   onCrear: () => void;
   onReasignar?: (lead: LeadDB) => void;
+  onConvertir?: (lead: LeadDB) => void;
+  puedeCrear?: boolean;
 }
 
-export function LeadsKanban({ leads, onVerDetalle, onCrear, onReasignar }: LeadsKanbanProps) {
+export function LeadsKanban({ leads, onVerDetalle, onCrear, onReasignar, onConvertir, puedeCrear = true }: LeadsKanbanProps) {
   const [busqueda, setBusqueda] = useState('');
   const [arrastrando, setArrastrando] = useState<string | null>(null);
 
-  const convertLead = useConvertLead();
   const rejectLead = useRejectLead();
 
   const columnas = [
@@ -78,17 +79,9 @@ export function LeadsKanban({ leads, onVerDetalle, onCrear, onReasignar }: Leads
   };
 
   const handleConvertir = (lead: LeadDB) => {
-    convertLead.mutate(
-      { lead_id: lead.id },
-      {
-        onSuccess: () => {
-          toast.success(`Lead #${lead.numero} convertido a cotización`);
-        },
-        onError: (error) => {
-          toast.error(`Error: ${error.message}`);
-        },
-      }
-    );
+    if (onConvertir) {
+      onConvertir(lead);
+    }
   };
 
   const handleRechazar = (lead: LeadDB) => {
@@ -126,14 +119,16 @@ export function LeadsKanban({ leads, onVerDetalle, onCrear, onReasignar }: Leads
             className="h-8 pl-8 text-xs"
           />
         </div>
-        <Button
-          size="sm"
-          onClick={onCrear}
-          className="gradient-brand h-8 gap-1.5"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Crear Lead</span>
-        </Button>
+        {puedeCrear && (
+          <Button
+            size="sm"
+            onClick={onCrear}
+            className="gradient-brand h-8 gap-1.5"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Crear Lead</span>
+          </Button>
+        )}
       </div>
 
       {/* Kanban Board - Responsive */}

@@ -1,6 +1,9 @@
 'use client';
 
-import { FileText, Megaphone } from 'lucide-react';
+import { useState } from 'react';
+
+import { FileText, Loader2, Megaphone, MessageSquare, Send, User } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Badge } from '@kit/ui/badge';
 import { Button } from '@kit/ui/button';
@@ -14,8 +17,9 @@ import {
 } from '@kit/ui/dialog';
 import { Label } from '@kit/ui/label';
 import { Separator } from '@kit/ui/separator';
+import { Textarea } from '@kit/ui/textarea';
 
-import { useLeads } from '~/lib/leads';
+import { useLeads, useLeadObservaciones, useAddObservacion } from '~/lib/leads';
 
 // Tipo del lead desde la base de datos (reutiliza el tipo del hook)
 type LeadDB = NonNullable<ReturnType<typeof useLeads>['data']>[number];
@@ -33,6 +37,37 @@ export function VerLeadModal({
   lead,
   onCrearCotizacion,
 }: VerLeadModalProps) {
+  const [nuevaObservacion, setNuevaObservacion] = useState('');
+
+  // Hooks para observaciones
+  const { data: observaciones, isLoading: loadingObservaciones } = useLeadObservaciones(lead.id);
+  const addObservacion = useAddObservacion();
+
+  const handleAgregarObservacion = async () => {
+    if (!nuevaObservacion.trim()) return;
+
+    try {
+      await addObservacion.mutateAsync({
+        lead_id: lead.id,
+        texto: nuevaObservacion.trim(),
+        menciones: [], // TODO: Implementar detección de menciones
+      });
+      setNuevaObservacion('');
+      toast.success('Observación agregada');
+    } catch (error) {
+      toast.error('Error al agregar observación');
+    }
+  };
+
+  const formatFechaCorta = (fecha: string) => {
+    return new Date(fecha).toLocaleString('es-CO', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   const getEstadoBadge = (estado: string) => {
     const badges: Record<string, { variant: 'outline' | 'secondary' | 'default'; label: string; className: string }> = {
       PENDIENTE_ASIGNACION: {
@@ -149,17 +184,17 @@ export function VerLeadModal({
                   <Label className="text-[10px] text-muted-foreground md:text-xs">
                     Canal de Entrada
                   </Label>
-                  <p className="mt-1">
+                  <div className="mt-1">
                     <Badge variant="outline" className="text-[10px] md:text-xs">
                       {getCanalLabel(lead.canal_origen)}
                     </Badge>
-                  </p>
+                  </div>
                 </div>
                 <div>
                   <Label className="text-[10px] text-muted-foreground md:text-xs">
                     Estado
                   </Label>
-                  <p className="mt-1">{getEstadoBadge(lead.estado)}</p>
+                  <div className="mt-1">{getEstadoBadge(lead.estado)}</div>
                 </div>
               </div>
             </Card>
@@ -258,6 +293,82 @@ export function VerLeadModal({
                   </div>
                 </>
               )}
+            </Card>
+
+            {/* Observaciones */}
+            <Card className="p-3 md:p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                <h4 className="text-sm md:text-base">Observaciones</h4>
+                {observaciones && observaciones.length > 0 && (
+                  <Badge variant="secondary" className="text-[10px]">
+                    {observaciones.length}
+                  </Badge>
+                )}
+              </div>
+
+              {/* Input para nueva observación */}
+              <div className="mb-3 flex gap-2">
+                <Textarea
+                  placeholder="Escribe una observación... (usa @ para mencionar)"
+                  value={nuevaObservacion}
+                  onChange={(e) => setNuevaObservacion(e.target.value)}
+                  className="min-h-[60px] resize-none text-xs md:text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.ctrlKey) {
+                      e.preventDefault();
+                      handleAgregarObservacion();
+                    }
+                  }}
+                />
+                <Button
+                  size="sm"
+                  onClick={handleAgregarObservacion}
+                  disabled={!nuevaObservacion.trim() || addObservacion.isPending}
+                  className="h-auto px-3"
+                >
+                  {addObservacion.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+
+              {/* Lista de observaciones */}
+              <div className="max-h-[200px] space-y-2 overflow-y-auto">
+                {loadingObservaciones ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : observaciones && observaciones.length > 0 ? (
+                  observaciones.map((obs: any) => (
+                    <div
+                      key={obs.id}
+                      className="rounded-md border border-border bg-muted/30 p-2"
+                    >
+                      <div className="mb-1 flex items-center gap-2">
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10">
+                          <User className="h-3 w-3 text-primary" />
+                        </div>
+                        <span className="text-[10px] font-medium md:text-xs">
+                          {obs.usuario?.nombre || 'Usuario'}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground md:text-[10px]">
+                          {formatFechaCorta(obs.creado_en)}
+                        </span>
+                      </div>
+                      <p className="text-xs leading-relaxed text-muted-foreground md:text-sm">
+                        {obs.texto}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="py-4 text-center text-xs text-muted-foreground">
+                    No hay observaciones aún
+                  </p>
+                )}
+              </div>
             </Card>
           </div>
         </div>

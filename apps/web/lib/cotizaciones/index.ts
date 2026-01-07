@@ -14,6 +14,7 @@ export {
   updateCotizacionItemAction,
   deleteCotizacionItemAction,
   reorderItemsAction,
+  duplicarCotizacionAction,
 } from './actions/cotizaciones.actions';
 
 // API

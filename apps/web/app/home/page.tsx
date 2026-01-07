@@ -4,7 +4,7 @@ import { Trans } from '@kit/ui/trans';
 import { DashboardDemo } from '~/home/_components/dashboard-demo';
 
 export const metadata = {
-  title: 'Dashboard | PS Comercial',
+  title: 'Dashboard | Prosuministros',
 };
 
 export default function HomePage() {

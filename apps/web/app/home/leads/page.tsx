@@ -3,7 +3,7 @@ import { PageBody } from '@kit/ui/page';
 import { LeadsView } from './_components/leads-view';
 
 export const metadata = {
-  title: 'Leads | PS Comercial',
+  title: 'Leads | Prosuministros',
 };
 
 export default function LeadsPage() {
