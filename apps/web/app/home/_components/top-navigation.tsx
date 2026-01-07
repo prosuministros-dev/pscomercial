@@ -16,7 +16,7 @@ import {
 } from '@kit/ui/tooltip';
 
 import { AppLogo } from '~/components/app-logo';
-import { NotificacionesPanel } from '~/components/notificaciones-panel';
+import { NotificacionesPanelReal } from '~/components/notificaciones-panel-real';
 import { ProfileAccountDropdownContainer } from '~/components/personal-account-dropdown-container';
 import { navigationConfig } from '~/config/navigation.config';
 import { useNotificacionesCount } from '~/lib/notificaciones';
@@ -87,7 +87,7 @@ export function TopNavigation() {
         />
 
         {/* Panel de Notificaciones */}
-        <NotificacionesPanel
+        <NotificacionesPanelReal
           open={notificacionesOpen}
           onOpenChange={setNotificacionesOpen}
         />

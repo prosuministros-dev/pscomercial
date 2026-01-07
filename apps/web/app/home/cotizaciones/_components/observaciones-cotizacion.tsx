@@ -36,7 +36,7 @@ interface ObservacionesCotizacionProps {
   cotizacionId: string;
   observaciones: Observacion[];
   usuarios: UsuarioMencionable[];
-  onAgregarObservacion: (texto: string, menciones: string[]) => Promise<void>;
+  onAgregarObservacion: (params: { texto: string; menciones: string[] }) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -117,7 +117,7 @@ export function ObservacionesCotizacion({
 
     setIsSending(true);
     try {
-      await onAgregarObservacion(texto, selectedMentions);
+      await onAgregarObservacion({ texto, menciones: selectedMentions });
       setTexto('');
       setSelectedMentions([]);
       toast.success('Observación agregada');
